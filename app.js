@@ -1,6 +1,6 @@
 "use strict";
 
-const APP_VERSION = "1.4.0";
+const APP_VERSION = "1.4.1";
 const STORAGE_KEY = "cfc-reservas-v1";
 const ROOM_CATALOG = Object.freeze({
   "Piso 1": [
@@ -735,7 +735,7 @@ function buildEmailHtml(item) {
       <table cellpadding="0" cellspacing="0" style="width:100%;max-width:680px;margin:20px 0;border:3px solid #111;border-collapse:collapse;table-layout:fixed;">
         <tr><th colspan="2" style="padding:8px;color:#fff;background:#8f1537;border:2px solid #111;text-align:center;font-family:Arial,sans-serif;font-size:14px;">RESERVA DE AULA - ${escapeHtml(item.floor.toUpperCase())} / ${escapeHtml(item.room.toUpperCase())}</th></tr>
         <tr><th style="width:44%;padding:7px 8px;color:#fff;background:#8f1537;border:2px solid #111;text-align:center;font-family:Arial,sans-serif;font-size:12px;">DATOS</th><th style="padding:7px 8px;color:#fff;background:#681126;border:2px solid #111;text-align:center;font-family:Arial,sans-serif;font-size:12px;">QUITO</th></tr>
-        <tr><th style="padding:7px 8px;color:#fff;background:#8f1537;border:2px solid #111;text-align:left;font-family:Arial,sans-serif;font-size:12px;">FECHA</th><td style="padding:7px 8px;color:#fff;background:#111;border:2px solid #111;text-align:center;font-family:Arial,sans-serif;font-size:12px;font-weight:700;">${escapeHtml(formatEmailDate(item.date))}</td></tr>
+        <tr><th style="padding:7px 8px;color:#fff;background:#8f1537;border:2px solid #111;text-align:left;font-family:Arial,sans-serif;font-size:12px;">FECHA</th><td style="padding:7px 8px;color:#231f20;background:#d9dde1;border:2px solid #111;text-align:center;font-family:Arial,sans-serif;font-size:12px;font-weight:700;">${escapeHtml(formatEmailDate(item.date))}</td></tr>
         ${row("RESPONSABLE DE LA RESERVA", item.responsible.toUpperCase(), true)}
         ${row("DEPARTAMENTO / MARCA", item.department.toUpperCase())}
         ${row("TEMA O MÓDULO", item.topic.toUpperCase())}

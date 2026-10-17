@@ -672,8 +672,8 @@ select:disabled {
 }
 
 .reservation-email-table .email-table-date td {
-  color: #fff;
-  background: #111;
+  color: #231f20;
+  background: #d9dde1;
 }
 
 .reservation-email-table tr:nth-child(4) td {

@@ -1,5 +1,10 @@
 # Historial de versiones
 
+## 1.4.1 — 17 de octubre de 2026
+
+- La celda con la fecha del correo ahora utiliza un fondo gris claro y texto oscuro para mejorar su legibilidad.
+- El nuevo contraste se aplica tanto a la vista previa como al cuadro copiado para Outlook o Gmail.
+
 ## 1.4.0 — 17 de octubre de 2026
 
 - El formulario se reinicia automáticamente después de guardar o actualizar una reserva y queda listo para el siguiente registro.
