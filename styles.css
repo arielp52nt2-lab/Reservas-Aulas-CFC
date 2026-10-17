@@ -1,13 +1,20 @@
 :root {
-  --navy: #103f6b;
-  --blue: #2878b8;
-  --blue-dark: #15588e;
-  --blue-soft: #eaf4fc;
-  --yellow: #ffd65a;
-  --yellow-soft: #fff4c5;
-  --ink: #192531;
-  --muted: #657382;
-  --line: #d9e2ea;
+  --navy: #231f20;
+  --blue: #c8102e;
+  --blue-dark: #a90d27;
+  --blue-soft: #fbe8ec;
+  --yellow: #a7a5a6;
+  --yellow-soft: #efedef;
+  --ink: #231f20;
+  --muted: #6d696b;
+  --line: #d8d4d5;
+  --brand-red: #c8102e;
+  --brand-red-dark: #9f0b23;
+  --brand-black: #231f20;
+  --brand-gray: #a7a5a6;
+  --table-blue: #347db9;
+  --table-blue-dark: #28689d;
+  --table-yellow: #ffe59e;
   --surface: #ffffff;
   --background: #f4f7fa;
   --success: #147a55;
@@ -30,7 +37,7 @@ body {
   min-width: 320px;
   min-height: 100vh;
   background:
-    radial-gradient(circle at top right, rgba(40, 120, 184, 0.1), transparent 30rem),
+    radial-gradient(circle at top right, rgba(200, 16, 46, 0.09), transparent 30rem),
     var(--background);
 }
 
@@ -54,8 +61,8 @@ a {
   justify-content: space-between;
   gap: 24px;
   color: #fff;
-  background: linear-gradient(120deg, #0d365d, #155f99);
-  border-bottom: 4px solid var(--yellow);
+  background: linear-gradient(120deg, var(--brand-black), #3a3436 58%, var(--brand-red-dark));
+  border-bottom: 4px solid var(--brand-red);
 }
 
 .brand {
@@ -64,17 +71,13 @@ a {
   gap: 15px;
 }
 
-.brand-mark {
-  width: 64px;
-  height: 48px;
-  display: grid;
-  place-items: center;
-  font-weight: 900;
-  letter-spacing: -2px;
-  color: var(--navy);
-  background: #fff;
-  border-radius: 10px 10px 10px 2px;
-  box-shadow: inset 0 -5px 0 var(--yellow);
+.brand-logo {
+  width: 54px;
+  height: 54px;
+  object-fit: cover;
+  border: 3px solid rgba(255, 255, 255, 0.9);
+  border-radius: 50%;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.22);
 }
 
 .eyebrow {
@@ -87,7 +90,7 @@ a {
 }
 
 .app-header .eyebrow {
-  color: #cde8fb;
+  color: #f5cbd3;
 }
 
 h1,
@@ -118,7 +121,7 @@ h3 {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #dbeeff;
+  color: #f2e9eb;
   font-size: 0.82rem;
 }
 
@@ -133,8 +136,8 @@ h3 {
 .version {
   margin-left: 8px;
   padding: 4px 8px;
-  color: var(--navy);
-  background: var(--yellow);
+  color: var(--brand-red);
+  background: #fff;
   border-radius: 999px;
   font-weight: 800;
 }
@@ -504,6 +507,14 @@ select:disabled {
   font-size: 0.73rem;
 }
 
+.field-help {
+  min-height: 0;
+  color: var(--muted);
+  font-size: 0.73rem;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
 .field.has-error input,
 .field.has-error select,
 .field.has-error textarea {
@@ -600,9 +611,72 @@ select:disabled {
   margin-top: 15px;
 }
 
-.email-content textarea {
-  min-height: 290px;
-  line-height: 1.45;
+.email-preview {
+  margin-top: 18px;
+  color: #282426;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.email-preview > p {
+  margin-bottom: 15px;
+}
+
+.reservation-email-table {
+  width: 100%;
+  margin: 20px 0;
+  border: 3px solid #111;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 0.76rem;
+  line-height: 1.2;
+}
+
+.reservation-email-table th,
+.reservation-email-table td {
+  padding: 7px 8px;
+  color: #111;
+  background: #fff;
+  border: 2px solid #111;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.reservation-email-table th {
+  width: 44%;
+  color: #fff;
+  background: var(--table-blue);
+  font-weight: 900;
+}
+
+.reservation-email-table td {
+  font-weight: 800;
+}
+
+.reservation-email-table .email-table-title th {
+  width: auto;
+  padding: 8px;
+  color: #fff;
+  background: var(--table-blue);
+  font-size: 0.9rem;
+}
+
+.reservation-email-table .email-table-location th:last-child {
+  background: var(--table-blue-dark);
+}
+
+.reservation-email-table .email-table-date td {
+  color: #fff;
+  background: #111;
+}
+
+.reservation-email-table tr:nth-child(4) td {
+  background: var(--table-yellow);
+}
+
+.email-signature {
+  min-height: 36px;
 }
 
 .email-actions {

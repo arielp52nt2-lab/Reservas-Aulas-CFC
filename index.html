@@ -10,7 +10,7 @@
   <body>
     <header class="app-header">
       <div class="brand" aria-label="Centro de Formación Continua">
-        <div class="brand-mark" aria-hidden="true">CFC</div>
+        <img class="brand-logo" src="assets/cfc-logo.png" alt="Logo del Centro de Formación Continua" />
         <div>
           <p class="eyebrow">Centro de Formación Continua</p>
           <h1>Reservas de aulas</h1>
@@ -19,7 +19,7 @@
       <div class="header-meta">
         <span class="status-dot" aria-hidden="true"></span>
         Datos guardados en este equipo
-        <span class="version">v1.0.0</span>
+        <span class="version">v1.1.0</span>
       </div>
     </header>
 
@@ -110,6 +110,7 @@
                   <select id="room" name="room" required disabled>
                     <option value="">Selecciona primero el piso</option>
                   </select>
+                  <small id="room-details" class="field-help"></small>
                   <small class="field-error"></small>
                 </label>
               </div>
@@ -156,6 +157,7 @@
                 <label class="field">
                   <span>Número de asistentes <strong>*</strong></span>
                   <input id="attendees" name="attendees" type="number" min="1" step="1" required />
+                  <small id="capacity-help" class="field-help">Selecciona un aula para consultar su aforo.</small>
                   <small class="field-error"></small>
                 </label>
                 <label class="field">
@@ -189,21 +191,43 @@
                   <p class="eyebrow">Confirmación</p>
                   <h3 id="email-title">Mensaje para correo</h3>
                 </div>
-                <span class="success-badge">Reserva guardada</span>
+                <span class="success-badge">Lista para enviar</span>
               </div>
               <label class="field">
                 <span>Asunto</span>
                 <input id="email-subject" type="text" readonly />
               </label>
-              <label class="field">
-                <span>Mensaje</span>
-                <textarea id="email-body" rows="16" readonly></textarea>
-              </label>
-              <div class="email-actions">
-                <button class="button button-secondary" id="copy-email" type="button">Copiar mensaje</button>
-                <a class="button button-primary" id="open-email" href="#">Abrir correo</a>
+              <div id="email-preview" class="email-preview">
+                <p>Buenos días, <strong id="email-name"></strong>:</p>
+                <p>Según lo conversado, te confirmo la reserva del aula <strong id="email-room-text"></strong>, ubicada en el piso <strong id="email-floor-number"></strong>, para la fecha y el horario indicados.</p>
+
+                <table class="reservation-email-table" aria-label="Detalle de la reserva">
+                  <tbody>
+                    <tr class="email-table-title"><th colspan="2" id="email-table-title">RESERVA DE AULA</th></tr>
+                    <tr class="email-table-location"><th>DATOS</th><th>GUAYAQUIL</th></tr>
+                    <tr class="email-table-date"><th>FECHA</th><td id="email-table-date"></td></tr>
+                    <tr><th>RESPONSABLE DE LA RESERVA</th><td id="email-table-responsible"></td></tr>
+                    <tr><th>DEPARTAMENTO / MARCA</th><td id="email-table-department"></td></tr>
+                    <tr><th>TEMA O MÓDULO</th><td id="email-table-topic"></td></tr>
+                    <tr><th>N.º DE ASISTENTES</th><td id="email-table-attendees"></td></tr>
+                    <tr><th>HORARIO</th><td id="email-table-schedule"></td></tr>
+                    <tr><th>TOTAL DE HORAS</th><td id="email-table-hours"></td></tr>
+                    <tr><th>SOLICITANTE</th><td id="email-table-requester"></td></tr>
+                  </tbody>
+                </table>
+
+                <p>Por favor, si existiera una cancelación, deberás realizarla con al menos 24 horas de anticipación.</p>
+                <p><strong>Adjunto te comparto las políticas de uso de las aulas y equipos del CFC.</strong></p>
+                <p>Te invitamos a ayudarnos a cuidar estos espacios, que son para el uso de todos.</p>
+                <p>Desde el Departamento de Capacitación, <strong>siempre será un gusto servirte</strong>.</p>
+                <p class="email-signature">Saludos,</p>
               </div>
-              <p class="panel-note">El destinatario puede agregarse cuando nos indiques a qué correo debe enviarse.</p>
+              <textarea id="email-body" class="sr-only" readonly aria-label="Versión de texto del correo"></textarea>
+              <div class="email-actions">
+                <button class="button button-primary" id="copy-email" type="button">Copiar correo con formato</button>
+                <a class="button button-secondary" id="open-email" href="#">Abrir correo en texto</a>
+              </div>
+              <p class="panel-note">Para conservar la tabla y los colores, copia el correo con formato y pégalo en Outlook o Gmail. El destinatario se podrá completar cuando nos indiques la dirección.</p>
             </div>
           </aside>
         </div>

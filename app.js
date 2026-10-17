@@ -1,12 +1,28 @@
 "use strict";
 
-const APP_VERSION = "1.0.0";
+const APP_VERSION = "1.1.0";
 const STORAGE_KEY = "cfc-reservas-v1";
-const ROOMS_BY_FLOOR = Object.freeze({
-  "Piso 1": ["Atenea", "Hera"],
-  "Piso 2": ["Platón", "Arheíste"],
-  "Piso 3": ["Sócrates", "Leonardo da Vinci"],
-  "Piso 4": ["Aristóteles"],
+const ROOM_CATALOG = Object.freeze({
+  "Piso 1": [
+    { name: "Atenea", type: "Centro de cómputo", capacity: 24 },
+    { name: "Manuela Sáenz", type: "Sala de capacitación", capacity: 60 },
+  ],
+  "Piso 2": [
+    { name: "Albert Einstein", type: "Sala de capacitación", capacity: 40 },
+    { name: "Platón", type: "Sala de meditación", capacity: 25 },
+  ],
+  "Piso 3": [
+    { name: "Sócrates", type: "Sala de conferencias", capacity: 12 },
+    { name: "Leonardo da Vinci", type: "Sala multiuso", capacity: 25 },
+  ],
+  "Piso 4": [{ name: "Aristóteles", type: "Auditorio", capacity: 105 }],
+});
+const ROOMS_BY_FLOOR = Object.freeze(
+  Object.fromEntries(Object.entries(ROOM_CATALOG).map(([floor, rooms]) => [floor, rooms.map((room) => room.name)])),
+);
+const LEGACY_ROOM_NAMES = Object.freeze({
+  Hera: "Manuela Sáenz",
+  Arheíste: "Albert Einstein",
 });
 
 const state = {
@@ -24,6 +40,7 @@ const elements = {
   date: document.querySelector("#date"),
   floor: document.querySelector("#floor"),
   room: document.querySelector("#room"),
+  roomDetails: document.querySelector("#room-details"),
   startTime: document.querySelector("#start-time"),
   endTime: document.querySelector("#end-time"),
   totalHours: document.querySelector("#total-hours"),
@@ -31,6 +48,7 @@ const elements = {
   department: document.querySelector("#department"),
   topic: document.querySelector("#topic"),
   attendees: document.querySelector("#attendees"),
+  capacityHelp: document.querySelector("#capacity-help"),
   facilitator: document.querySelector("#facilitator"),
   notes: document.querySelector("#notes"),
   availability: document.querySelector("#availability-message"),
@@ -52,6 +70,19 @@ const elements = {
   emailContent: document.querySelector("#email-content"),
   emailSubject: document.querySelector("#email-subject"),
   emailBody: document.querySelector("#email-body"),
+  emailPreview: document.querySelector("#email-preview"),
+  emailName: document.querySelector("#email-name"),
+  emailRoomText: document.querySelector("#email-room-text"),
+  emailFloorNumber: document.querySelector("#email-floor-number"),
+  emailTableTitle: document.querySelector("#email-table-title"),
+  emailTableDate: document.querySelector("#email-table-date"),
+  emailTableResponsible: document.querySelector("#email-table-responsible"),
+  emailTableDepartment: document.querySelector("#email-table-department"),
+  emailTableTopic: document.querySelector("#email-table-topic"),
+  emailTableAttendees: document.querySelector("#email-table-attendees"),
+  emailTableSchedule: document.querySelector("#email-table-schedule"),
+  emailTableHours: document.querySelector("#email-table-hours"),
+  emailTableRequester: document.querySelector("#email-table-requester"),
   openEmail: document.querySelector("#open-email"),
   toast: document.querySelector("#toast"),
 };
@@ -81,10 +112,14 @@ function bindEvents() {
 
   elements.floor.addEventListener("change", () => {
     populateRoomSelect(elements.room, elements.floor.value, true);
+    updateRoomDetails();
     updateAvailability();
   });
   elements.date.addEventListener("change", updateAvailability);
-  elements.room.addEventListener("change", updateAvailability);
+  elements.room.addEventListener("change", () => {
+    updateRoomDetails();
+    updateAvailability();
+  });
   elements.startTime.addEventListener("input", updateTimeSummary);
   elements.endTime.addEventListener("input", updateTimeSummary);
   elements.form.addEventListener("submit", handleSubmit);
@@ -109,11 +144,17 @@ function loadReservations() {
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
-    return parsed.filter(isValidStoredReservation);
+    return parsed.map(migrateStoredReservation).filter(isValidStoredReservation);
   } catch (error) {
     console.warn("No se pudo cargar el historial de reservas.", error);
     return [];
   }
+}
+
+function migrateStoredReservation(item) {
+  if (!item || typeof item !== "object") return item;
+  const room = LEGACY_ROOM_NAMES[item.room] || item.room;
+  return { ...item, room, appVersion: APP_VERSION };
 }
 
 function isValidStoredReservation(item) {
@@ -160,6 +201,9 @@ function resetForm() {
   elements.cancelEdit.classList.add("is-hidden");
   elements.room.disabled = true;
   elements.room.innerHTML = '<option value="">Selecciona primero el piso</option>';
+  elements.roomDetails.textContent = "";
+  elements.capacityHelp.textContent = "Selecciona un aula para consultar su aforo.";
+  elements.attendees.removeAttribute("max");
   clearFieldErrors();
   elements.availability.textContent = "";
   elements.availability.className = "availability-message";
@@ -168,7 +212,7 @@ function resetForm() {
 
 function populateRoomSelect(select, floor, placeholderForForm = false) {
   const currentValue = select.value;
-  const rooms = floor ? ROOMS_BY_FLOOR[floor] || [] : Object.values(ROOMS_BY_FLOOR).flat();
+  const rooms = floor ? ROOM_CATALOG[floor] || [] : Object.values(ROOM_CATALOG).flat();
   const placeholder = placeholderForForm
     ? floor
       ? "Selecciona un aula"
@@ -180,12 +224,29 @@ function populateRoomSelect(select, floor, placeholderForForm = false) {
   select.innerHTML = `<option value="">${placeholder}</option>`;
   rooms.forEach((room) => {
     const option = document.createElement("option");
-    option.value = room;
-    option.textContent = room;
+    option.value = room.name;
+    option.textContent = `${room.name} — ${room.type}`;
     select.append(option);
   });
   select.disabled = placeholderForForm && !floor;
-  if (rooms.includes(currentValue)) select.value = currentValue;
+  if (rooms.some((room) => room.name === currentValue)) select.value = currentValue;
+}
+
+function getRoomDetails(floor, roomName) {
+  return (ROOM_CATALOG[floor] || []).find((room) => room.name === roomName) || null;
+}
+
+function updateRoomDetails() {
+  const room = getRoomDetails(elements.floor.value, elements.room.value);
+  if (!room) {
+    elements.roomDetails.textContent = "";
+    elements.capacityHelp.textContent = "Selecciona un aula para consultar su aforo.";
+    elements.attendees.removeAttribute("max");
+    return;
+  }
+  elements.roomDetails.textContent = `${room.type}. Aforo máximo: ${room.capacity} personas.`;
+  elements.capacityHelp.textContent = `Máximo permitido para ${room.name}: ${room.capacity} personas.`;
+  elements.attendees.max = String(room.capacity);
 }
 
 function updateTimeSummary() {
@@ -310,6 +371,15 @@ function validateReservation(data) {
     }
   });
 
+  const selectedRoom = getRoomDetails(data.floor, data.room);
+  if (selectedRoom && data.attendees > selectedRoom.capacity) {
+    setFieldError(
+      elements.attendees,
+      `${selectedRoom.name} admite un máximo de ${selectedRoom.capacity} personas.`,
+    );
+    valid = false;
+  }
+
   if (data.startTime && data.endTime && calculateHours(data.startTime, data.endTime) === null) {
     setFieldError(elements.endTime, "La hora de fin debe ser posterior a la hora de inicio.");
     valid = false;
@@ -352,6 +422,7 @@ function editReservation(id) {
   elements.floor.value = item.floor;
   populateRoomSelect(elements.room, item.floor, true);
   elements.room.value = item.room;
+  updateRoomDetails();
   elements.startTime.value = item.startTime;
   elements.endTime.value = item.endTime;
   elements.responsible.value = item.responsible;
@@ -420,6 +491,7 @@ function renderCalendar() {
       list.innerHTML = '<p class="day-empty">Sin reservas</p>';
     } else {
       items.forEach((item) => {
+        const roomDetails = getRoomDetails(item.floor, item.room);
         const button = document.createElement("button");
         button.type = "button";
         button.className = "reservation-card";
@@ -428,6 +500,7 @@ function renderCalendar() {
           <strong>${escapeHtml(item.room)}</strong>
           <small>${escapeHtml(item.topic)}</small>
           <small>${escapeHtml(item.responsible)}</small>
+          ${roomDetails ? `<small>${escapeHtml(roomDetails.type)} · Aforo ${roomDetails.capacity}</small>` : ""}
         `;
         button.addEventListener("click", () => editReservation(item.id));
         list.append(button);
@@ -462,11 +535,12 @@ function renderHistory() {
   elements.historyBody.innerHTML = "";
   elements.historyEmpty.classList.toggle("is-hidden", filtered.length > 0);
   filtered.forEach((item) => {
+    const roomDetails = getRoomDetails(item.floor, item.room);
     const row = document.createElement("tr");
     row.innerHTML = `
       <td><strong>${escapeHtml(formatCompactDate(item.date))}</strong></td>
       <td>${escapeHtml(item.startTime)} – ${escapeHtml(item.endTime)}<small>${escapeHtml(formatHours(calculateHours(item.startTime, item.endTime)))}</small></td>
-      <td><strong>${escapeHtml(item.room)}</strong><small>${escapeHtml(item.floor)}</small></td>
+      <td><strong>${escapeHtml(item.room)}</strong><small>${escapeHtml(item.floor)}${roomDetails ? ` · ${escapeHtml(roomDetails.type)}` : ""}</small></td>
       <td>${escapeHtml(item.responsible)}<small>${escapeHtml(item.department)}</small></td>
       <td>${escapeHtml(item.topic)}${item.facilitator ? `<small>Facilitador: ${escapeHtml(item.facilitator)}</small>` : ""}</td>
       <td>${Number(item.attendees)}</td>
@@ -505,8 +579,21 @@ function showEmailPanel(id) {
   state.activeEmailId = id;
   const subject = `Reserva de aula | ${item.room} | ${formatCompactDate(item.date)}`;
   const body = buildEmailBody(item);
+  const floorNumber = item.floor.replace(/[^0-9]/g, "");
   elements.emailSubject.value = subject;
   elements.emailBody.value = body;
+  elements.emailName.textContent = item.responsible;
+  elements.emailRoomText.textContent = item.room;
+  elements.emailFloorNumber.textContent = floorNumber;
+  elements.emailTableTitle.textContent = `RESERVA DE AULA - ${item.floor.toUpperCase()} / ${item.room.toUpperCase()}`;
+  elements.emailTableDate.textContent = formatEmailDate(item.date);
+  elements.emailTableResponsible.textContent = item.responsible.toUpperCase();
+  elements.emailTableDepartment.textContent = item.department.toUpperCase();
+  elements.emailTableTopic.textContent = item.topic.toUpperCase();
+  elements.emailTableAttendees.textContent = String(item.attendees);
+  elements.emailTableSchedule.textContent = `${item.startTime} - ${item.endTime}`;
+  elements.emailTableHours.textContent = formatHours(calculateHours(item.startTime, item.endTime));
+  elements.emailTableRequester.textContent = item.responsible.toUpperCase();
   elements.openEmail.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   elements.emailEmpty.classList.add("is-hidden");
   elements.emailContent.classList.remove("is-hidden");
@@ -519,36 +606,89 @@ function hideEmailPanel() {
 }
 
 function buildEmailBody(item) {
+  const floorNumber = item.floor.replace(/[^0-9]/g, "");
   const lines = [
-    "Hola,",
+    `Buenos días, ${item.responsible}:`,
     "",
-    "Comparto los datos de la reserva de aula:",
+    `Según lo conversado, te confirmo la reserva del aula ${item.room}, ubicada en el piso ${floorNumber}, para la fecha y el horario indicados.`,
     "",
-    `Fecha: ${formatLongDate(item.date)}`,
-    `Piso: ${item.floor}`,
-    `Aula: ${item.room}`,
-    `Horario: ${item.startTime} a ${item.endTime}`,
-    `Total: ${formatHours(calculateHours(item.startTime, item.endTime))}`,
-    `Responsable: ${item.responsible}`,
-    `Departamento / marca: ${item.department}`,
-    `Tema o módulo: ${item.topic}`,
-    `Número de asistentes: ${item.attendees}`,
+    `RESERVA DE AULA - ${item.floor.toUpperCase()} / ${item.room.toUpperCase()}`,
+    "DATOS | GUAYAQUIL",
+    `FECHA | ${formatEmailDate(item.date)}`,
+    `RESPONSABLE DE LA RESERVA | ${item.responsible.toUpperCase()}`,
+    `DEPARTAMENTO / MARCA | ${item.department.toUpperCase()}`,
+    `TEMA O MÓDULO | ${item.topic.toUpperCase()}`,
+    `N.º DE ASISTENTES | ${item.attendees}`,
+    `HORARIO | ${item.startTime} - ${item.endTime}`,
+    `TOTAL DE HORAS | ${formatHours(calculateHours(item.startTime, item.endTime))}`,
+    `SOLICITANTE | ${item.responsible.toUpperCase()}`,
+    "",
+    "Por favor, si existiera una cancelación, deberás realizarla con al menos 24 horas de anticipación.",
+    "",
+    "Adjunto te comparto las políticas de uso de las aulas y equipos del CFC.",
+    "",
+    "Te invitamos a ayudarnos a cuidar estos espacios, que son para el uso de todos.",
+    "",
+    "Desde el Departamento de Capacitación, siempre será un gusto servirte.",
+    "",
+    "Saludos,",
   ];
-  if (item.facilitator) lines.push(`Facilitador: ${item.facilitator}`);
-  if (item.notes) lines.push(`Observaciones: ${item.notes}`);
-  lines.push("", "Saludos,", item.responsible);
   return lines.join("\n");
 }
 
+function buildEmailHtml(item) {
+  const floorNumber = item.floor.replace(/[^0-9]/g, "");
+  const hours = formatHours(calculateHours(item.startTime, item.endTime));
+  const row = (label, value, highlighted = false) => `
+    <tr>
+      <th style="width:44%;padding:7px 8px;color:#fff;background:#347db9;border:2px solid #111;text-align:left;font-family:Arial,sans-serif;font-size:12px;">${label}</th>
+      <td style="padding:7px 8px;color:#111;background:${highlighted ? "#ffe59e" : "#fff"};border:2px solid #111;text-align:center;font-family:Arial,sans-serif;font-size:12px;font-weight:700;">${escapeHtml(value)}</td>
+    </tr>`;
+  return `
+    <div style="color:#231f20;font-family:Arial,sans-serif;font-size:14px;line-height:1.5;">
+      <p>Buenos días, <strong>${escapeHtml(item.responsible)}</strong>:</p>
+      <p>Según lo conversado, te confirmo la reserva del aula <strong>${escapeHtml(item.room)}</strong>, ubicada en el piso <strong>${escapeHtml(floorNumber)}</strong>, para la fecha y el horario indicados.</p>
+      <table cellpadding="0" cellspacing="0" style="width:100%;max-width:680px;margin:20px 0;border:3px solid #111;border-collapse:collapse;table-layout:fixed;">
+        <tr><th colspan="2" style="padding:8px;color:#fff;background:#347db9;border:2px solid #111;text-align:center;font-family:Arial,sans-serif;font-size:14px;">RESERVA DE AULA - ${escapeHtml(item.floor.toUpperCase())} / ${escapeHtml(item.room.toUpperCase())}</th></tr>
+        <tr><th style="width:44%;padding:7px 8px;color:#fff;background:#347db9;border:2px solid #111;text-align:center;font-family:Arial,sans-serif;font-size:12px;">DATOS</th><th style="padding:7px 8px;color:#fff;background:#28689d;border:2px solid #111;text-align:center;font-family:Arial,sans-serif;font-size:12px;">GUAYAQUIL</th></tr>
+        <tr><th style="padding:7px 8px;color:#fff;background:#347db9;border:2px solid #111;text-align:left;font-family:Arial,sans-serif;font-size:12px;">FECHA</th><td style="padding:7px 8px;color:#fff;background:#111;border:2px solid #111;text-align:center;font-family:Arial,sans-serif;font-size:12px;font-weight:700;">${escapeHtml(formatEmailDate(item.date))}</td></tr>
+        ${row("RESPONSABLE DE LA RESERVA", item.responsible.toUpperCase(), true)}
+        ${row("DEPARTAMENTO / MARCA", item.department.toUpperCase())}
+        ${row("TEMA O MÓDULO", item.topic.toUpperCase())}
+        ${row("N.º DE ASISTENTES", String(item.attendees))}
+        ${row("HORARIO", `${item.startTime} - ${item.endTime}`)}
+        ${row("TOTAL DE HORAS", hours)}
+        ${row("SOLICITANTE", item.responsible.toUpperCase())}
+      </table>
+      <p>Por favor, si existiera una cancelación, deberás realizarla con al menos 24 horas de anticipación.</p>
+      <p><strong>Adjunto te comparto las políticas de uso de las aulas y equipos del CFC.</strong></p>
+      <p>Te invitamos a ayudarnos a cuidar estos espacios, que son para el uso de todos.</p>
+      <p>Desde el Departamento de Capacitación, <strong>siempre será un gusto servirte</strong>.</p>
+      <p>Saludos,</p>
+    </div>`;
+}
+
 async function copyEmailMessage() {
-  const text = `Asunto: ${elements.emailSubject.value}\n\n${elements.emailBody.value}`;
+  const item = state.reservations.find((reservation) => reservation.id === state.activeEmailId);
+  if (!item) return;
+  const text = elements.emailBody.value;
+  const html = buildEmailHtml(item);
   try {
-    await navigator.clipboard.writeText(text);
-    showToast("Mensaje copiado al portapapeles.");
+    if (navigator.clipboard?.write && window.ClipboardItem) {
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          "text/html": new Blob([html], { type: "text/html" }),
+          "text/plain": new Blob([text], { type: "text/plain" }),
+        }),
+      ]);
+    } else {
+      await navigator.clipboard.writeText(text);
+    }
+    showToast("Correo con formato copiado. Pégalo en Outlook o Gmail.");
   } catch {
     elements.emailBody.select();
     document.execCommand("copy");
-    showToast("Mensaje copiado al portapapeles.");
+    showToast("Se copió la versión en texto del correo.");
   }
 }
 
@@ -637,6 +777,17 @@ function formatLongDate(dateKey) {
     month: "long",
     year: "numeric",
   }).format(parseLocalDate(dateKey));
+}
+
+function formatEmailDate(dateKey) {
+  const date = parseLocalDate(dateKey);
+  const weekday = new Intl.DateTimeFormat("es-EC", { weekday: "long" }).format(date).toUpperCase();
+  const numericDate = new Intl.DateTimeFormat("es-EC", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(date);
+  return `${weekday}: ${numericDate}`;
 }
 
 function formatCompactDate(dateKey) {
