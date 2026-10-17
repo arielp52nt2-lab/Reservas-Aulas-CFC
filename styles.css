@@ -72,24 +72,17 @@ a {
 }
 
 .brand-logo {
-  width: 112px;
-  height: 62px;
-  padding: 5px 7px;
+  width: clamp(170px, 18vw, 235px);
+  height: 68px;
   object-fit: contain;
-  background: rgba(255, 255, 255, 0.96);
-  border: 1px solid rgba(255, 255, 255, 0.95);
-  border-radius: 12px;
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.26);
+  filter: drop-shadow(0 8px 10px rgba(0, 0, 0, 0.32));
 }
 
 .header-group-logo {
-  width: clamp(170px, 19vw, 250px);
-  height: 60px;
-  padding: 5px 10px;
+  width: clamp(180px, 21vw, 270px);
+  height: 68px;
   object-fit: contain;
-  background: rgba(255, 255, 255, 0.96);
-  border-radius: 12px;
-  filter: drop-shadow(0 8px 13px rgba(0, 0, 0, 0.24));
+  filter: drop-shadow(0 8px 10px rgba(0, 0, 0, 0.32));
 }
 
 .eyebrow {

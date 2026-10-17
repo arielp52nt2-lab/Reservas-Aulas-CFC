@@ -1,5 +1,12 @@
 # Historial de versiones
 
+## 1.3.0 — 17 de octubre de 2026
+
+- Se eliminó la descarga automática de archivos `.eml` que generaba la advertencia de seguridad del navegador.
+- El botón de correo ahora copia el cuadro con formato y abre la aplicación de correo con el asunto preparado.
+- Se añadieron dos logotipos independientes, transparentes y con relieve 3D sutil en las esquinas superiores.
+- Los logotipos se muestran directamente sobre la franja institucional, sin recuadros blancos.
+
 ## 1.2.0 — 17 de octubre de 2026
 
 - Se cambió la ubicación del correo de Guayaquil a Quito.

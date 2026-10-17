@@ -1,6 +1,6 @@
 "use strict";
 
-const APP_VERSION = "1.2.0";
+const APP_VERSION = "1.3.0";
 const STORAGE_KEY = "cfc-reservas-v1";
 const ROOM_CATALOG = Object.freeze({
   "Piso 1": [
@@ -150,7 +150,7 @@ function bindEvents() {
   elements.historyPeriod.addEventListener("change", renderHistory);
   document.querySelector("#export-csv").addEventListener("click", exportCsv);
   document.querySelector("#copy-email").addEventListener("click", copyEmailMessage);
-  elements.openEmail.addEventListener("click", downloadFormattedEmail);
+  elements.openEmail.addEventListener("click", openFormattedEmail);
 }
 
 function loadReservations() {
@@ -753,6 +753,11 @@ function buildEmailHtml(item) {
 async function copyEmailMessage() {
   const item = state.reservations.find((reservation) => reservation.id === state.activeEmailId);
   if (!item) return;
+  const copied = await copyFormattedEmailToClipboard(item);
+  showToast(copied ? "Correo con formato copiado. Pégalo en Outlook o Gmail." : "Se copió la versión en texto del correo.");
+}
+
+async function copyFormattedEmailToClipboard(item) {
   const text = elements.emailBody.value;
   const html = buildEmailHtml(item);
   try {
@@ -766,56 +771,21 @@ async function copyEmailMessage() {
     } else {
       await navigator.clipboard.writeText(text);
     }
-    showToast("Correo con formato copiado. Pégalo en Outlook o Gmail.");
+    return true;
   } catch {
     elements.emailBody.select();
     document.execCommand("copy");
-    showToast("Se copió la versión en texto del correo.");
+    return false;
   }
 }
 
-function downloadFormattedEmail() {
+async function openFormattedEmail() {
   const item = state.reservations.find((reservation) => reservation.id === state.activeEmailId);
   if (!item) return;
-  const subject = elements.emailSubject.value;
-  const boundary = `CFC-${Date.now()}`;
-  const eml = [
-    "X-Unsent: 1",
-    `Subject: =?UTF-8?B?${toBase64Utf8(subject)}?=`,
-    "MIME-Version: 1.0",
-    `Content-Type: multipart/alternative; boundary="${boundary}"`,
-    "",
-    `--${boundary}`,
-    'Content-Type: text/plain; charset="UTF-8"',
-    "Content-Transfer-Encoding: base64",
-    "",
-    toBase64Utf8(elements.emailBody.value),
-    `--${boundary}`,
-    'Content-Type: text/html; charset="UTF-8"',
-    "Content-Transfer-Encoding: base64",
-    "",
-    toBase64Utf8(buildEmailHtml(item)),
-    `--${boundary}--`,
-    "",
-  ].join("\r\n");
-  const blob = new Blob([eml], { type: "message/rfc822" });
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.download = `reserva-${normalizeFileName(item.room)}-${item.date}.eml`;
-  link.click();
-  URL.revokeObjectURL(link.href);
-  showToast("Borrador con formato creado. Ábrelo con Outlook.");
-}
-
-function toBase64Utf8(value) {
-  const bytes = new TextEncoder().encode(String(value));
-  let binary = "";
-  bytes.forEach((byte) => (binary += String.fromCharCode(byte)));
-  return btoa(binary);
-}
-
-function normalizeFileName(value) {
-  return normalizeText(value).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  const copied = await copyFormattedEmailToClipboard(item);
+  const subject = encodeURIComponent(elements.emailSubject.value);
+  showToast(copied ? "Formato copiado. Pégalo con Ctrl + V en el correo." : "Texto copiado. Pégalo con Ctrl + V en el correo.");
+  window.location.href = `mailto:?subject=${subject}`;
 }
 
 function exportCsv() {
