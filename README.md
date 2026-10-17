@@ -9,7 +9,9 @@ Aplicación web local para registrar y consultar reservas de aulas por fecha.
 3. Completa los datos de la actividad y guarda la reserva. El formulario se limpiará automáticamente para registrar la siguiente.
 4. Copia el mensaje preparado o usa **Copiar formato y abrir correo**. Cuando se abra Outlook u otra aplicación de correo, pega el cuadro con **Ctrl + V**.
 
-Las reservas se guardan en el almacenamiento local del navegador del equipo. Para compartir una copia del historial, usa **Descargar CSV**.
+Las reservas, ediciones y eliminaciones se guardan inmediatamente en el almacenamiento local del navegador. Permanecen disponibles después de cerrar o recargar la página y solo cambian cuando se guarda, edita o elimina una reserva. Los cambios también se sincronizan entre pestañas abiertas del mismo navegador. Para compartir una copia del historial, usa **Descargar CSV**.
+
+> El almacenamiento es local para cada navegador y equipo. Para que varias computadoras compartan el mismo calendario se necesita conectar una base de datos externa.
 
 Los calendarios semanal y mensual incluyen la marca o departamento de cada reserva. El calendario mensual también muestra el total de reservas, asistentes y aulas utilizadas. La opción **Copiar formato y abrir correo** coloca el cuadro completo en el portapapeles y abre la aplicación de correo sin descargar archivos que activen advertencias del navegador.
 

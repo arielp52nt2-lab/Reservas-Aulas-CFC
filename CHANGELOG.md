@@ -1,5 +1,12 @@
 # Historial de versiones
 
+## 1.5.0 — 17 de octubre de 2026
+
+- Se reforzó la persistencia local para que una reserva, edición o eliminación solo se refleje después de guardarse correctamente en el navegador.
+- Las reservas permanecen disponibles después de cerrar o recargar la página.
+- Los cambios se sincronizan automáticamente entre pestañas abiertas del mismo navegador.
+- Se documentó la diferencia entre almacenamiento local y un calendario compartido entre varios equipos.
+
 ## 1.4.1 — 17 de octubre de 2026
 
 - La celda con la fecha del correo ahora utiliza un fondo gris claro y texto oscuro para mejorar su legibilidad.

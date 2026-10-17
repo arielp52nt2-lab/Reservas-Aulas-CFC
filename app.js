@@ -1,6 +1,6 @@
 "use strict";
 
-const APP_VERSION = "1.4.1";
+const APP_VERSION = "1.5.0";
 const STORAGE_KEY = "cfc-reservas-v1";
 const ROOM_CATALOG = Object.freeze({
   "Piso 1": [
@@ -151,6 +151,7 @@ function bindEvents() {
   document.querySelector("#export-csv").addEventListener("click", exportCsv);
   document.querySelector("#copy-email").addEventListener("click", copyEmailMessage);
   elements.openEmail.addEventListener("click", openFormattedEmail);
+  window.addEventListener("storage", synchronizeStoredReservations);
 }
 
 function loadReservations() {
@@ -183,8 +184,25 @@ function isValidStoredReservation(item) {
   );
 }
 
-function saveReservations() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state.reservations));
+function saveReservations(reservations = state.reservations) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(reservations));
+    return true;
+  } catch (error) {
+    console.error("No se pudieron guardar las reservas.", error);
+    showToast("No se pudo guardar el cambio. Revisa el almacenamiento del navegador.");
+    return false;
+  }
+}
+
+function synchronizeStoredReservations(event) {
+  if (event.key !== STORAGE_KEY) return;
+  state.reservations = loadReservations();
+  if (state.activeEmailId && !state.reservations.some((item) => item.id === state.activeEmailId)) {
+    hideEmailPanel();
+  }
+  renderAll();
+  showToast("Reservas actualizadas desde otra pestaña.");
 }
 
 function showView(name) {
@@ -326,18 +344,20 @@ function handleSubmit(event) {
 
   const now = new Date().toISOString();
   const existingIndex = state.reservations.findIndex((item) => item.id === data.id);
+  const nextReservations = [...state.reservations];
   if (existingIndex >= 0) {
     data.createdAt = state.reservations[existingIndex].createdAt;
     data.updatedAt = now;
-    state.reservations[existingIndex] = data;
+    nextReservations[existingIndex] = data;
   } else {
     data.id = createId();
     data.createdAt = now;
     data.updatedAt = now;
-    state.reservations.push(data);
+    nextReservations.push(data);
   }
 
-  saveReservations();
+  if (!saveReservations(nextReservations)) return;
+  state.reservations = nextReservations;
   state.activeEmailId = data.id;
   renderAll();
   showEmailPanel(data.id);
@@ -458,8 +478,9 @@ function deleteReservation(id) {
   if (!item) return;
   const confirmed = window.confirm(`¿Eliminar la reserva de ${item.room} del ${formatLongDate(item.date)}?`);
   if (!confirmed) return;
-  state.reservations = state.reservations.filter((reservation) => reservation.id !== id);
-  saveReservations();
+  const nextReservations = state.reservations.filter((reservation) => reservation.id !== id);
+  if (!saveReservations(nextReservations)) return;
+  state.reservations = nextReservations;
   if (state.activeEmailId === id) hideEmailPanel();
   renderAll();
   showToast("Reserva eliminada.");
