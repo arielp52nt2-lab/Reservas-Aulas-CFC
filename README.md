@@ -6,12 +6,12 @@ Aplicación web local para registrar y consultar reservas de aulas por fecha.
 
 1. Abre `index.html` en un navegador moderno.
 2. En **Nueva reserva**, selecciona fecha, piso, aula y horario.
-3. Completa los datos de la actividad y guarda la reserva.
+3. Completa los datos de la actividad y guarda la reserva. El formulario se limpiará automáticamente para registrar la siguiente.
 4. Copia el mensaje preparado o usa **Copiar formato y abrir correo**. Cuando se abra Outlook u otra aplicación de correo, pega el cuadro con **Ctrl + V**.
 
 Las reservas se guardan en el almacenamiento local del navegador del equipo. Para compartir una copia del historial, usa **Descargar CSV**.
 
-El calendario mensual muestra el total de reservas, asistentes y aulas utilizadas. La opción **Copiar formato y abrir correo** coloca el cuadro completo en el portapapeles y abre la aplicación de correo sin descargar archivos que activen advertencias del navegador.
+Los calendarios semanal y mensual incluyen la marca o departamento de cada reserva. El calendario mensual también muestra el total de reservas, asistentes y aulas utilizadas. La opción **Copiar formato y abrir correo** coloca el cuadro completo en el portapapeles y abre la aplicación de correo sin descargar archivos que activen advertencias del navegador.
 
 ## Espacios configurados
 

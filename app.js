@@ -1,6 +1,6 @@
 "use strict";
 
-const APP_VERSION = "1.3.0";
+const APP_VERSION = "1.4.0";
 const STORAGE_KEY = "cfc-reservas-v1";
 const ROOM_CATALOG = Object.freeze({
   "Piso 1": [
@@ -341,10 +341,7 @@ function handleSubmit(event) {
   state.activeEmailId = data.id;
   renderAll();
   showEmailPanel(data.id);
-  elements.id.value = data.id;
-  elements.formTitle.textContent = "Editar reserva";
-  elements.saveButton.textContent = "Guardar cambios";
-  elements.cancelEdit.classList.remove("is-hidden");
+  resetForm();
   showToast(existingIndex >= 0 ? "Reserva actualizada correctamente." : "Reserva guardada correctamente.");
 }
 
@@ -516,6 +513,7 @@ function renderCalendar() {
           <strong>${escapeHtml(item.room)}</strong>
           <small>${escapeHtml(item.topic)}</small>
           <small>${escapeHtml(item.responsible)}</small>
+          <small><b>Marca:</b> ${escapeHtml(item.department)}</small>
           <small>${escapeHtml(item.floor)} · ${Number(item.attendees)} ${Number(item.attendees) === 1 ? "persona" : "personas"}</small>
         `;
         button.addEventListener("click", () => editReservation(item.id));
@@ -585,7 +583,11 @@ function renderMonthlyCalendar() {
       const button = document.createElement("button");
       button.type = "button";
       button.className = "month-reservation";
-      button.innerHTML = `<strong>${escapeHtml(item.startTime)} · ${escapeHtml(item.room)}</strong><span>${Number(item.attendees)} personas</span>`;
+      button.innerHTML = `
+        <strong>${escapeHtml(item.startTime)} · ${escapeHtml(item.room)}</strong>
+        <span><b>Marca:</b> ${escapeHtml(item.department)}</span>
+        <span>${Number(item.attendees)} ${Number(item.attendees) === 1 ? "persona" : "personas"}</span>
+      `;
       button.addEventListener("click", () => editReservation(item.id));
       list.append(button);
     });

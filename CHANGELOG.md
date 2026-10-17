@@ -1,5 +1,11 @@
 # Historial de versiones
 
+## 1.4.0 — 17 de octubre de 2026
+
+- El formulario se reinicia automáticamente después de guardar o actualizar una reserva y queda listo para el siguiente registro.
+- Las tarjetas del calendario semanal ahora muestran la marca o departamento que realizó la reserva.
+- Las reservas del calendario mensual ahora muestran la marca o departamento junto con el número de asistentes.
+
 ## 1.3.0 — 17 de octubre de 2026
 
 - Se eliminó la descarga automática de archivos `.eml` que generaba la advertencia de seguridad del navegador.
