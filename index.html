@@ -10,22 +10,19 @@
   <body>
     <header class="app-header">
       <div class="brand" aria-label="Centro de Formación Continua">
-        <img class="brand-logo" src="assets/cfc-logo.png" alt="Logo del Centro de Formación Continua" />
+        <img class="brand-logo" src="assets/cfc-logo-3d.png" alt="Logo del Centro de Formación Continua" />
         <div>
           <p class="eyebrow">Centro de Formación Continua</p>
           <h1>Reservas de aulas</h1>
         </div>
       </div>
-      <div class="header-meta">
-        <span class="status-dot" aria-hidden="true"></span>
-        Datos guardados en este equipo
-        <span class="version">v1.1.0</span>
-      </div>
+      <img class="header-group-logo" src="assets/cfc-logo-3d.png" alt="CFC Grupo KFC" />
     </header>
 
     <main class="app-shell">
       <nav class="tabs" aria-label="Secciones principales">
         <button class="tab is-active" data-tab="calendar" type="button">Calendario</button>
+        <button class="tab" data-tab="month" type="button">Calendario mensual</button>
         <button class="tab" data-tab="form" type="button">Nueva reserva</button>
         <button class="tab" data-tab="history" type="button">Historial</button>
       </nav>
@@ -68,6 +65,49 @@
         </div>
 
         <div id="week-board" class="week-board" aria-live="polite"></div>
+      </section>
+
+      <section id="month-view" class="view" aria-labelledby="month-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Vista mensual</p>
+            <h2 id="month-title">Calendario mensual</h2>
+            <p class="section-copy">Consulta todas las reservas y el total de asistentes del mes.</p>
+          </div>
+          <button class="button button-primary" id="month-new" type="button">Crear reserva</button>
+        </div>
+
+        <div class="month-summary">
+          <article class="summary-card">
+            <span>Reservas del mes</span>
+            <strong id="month-total-reservations">0</strong>
+            <small>reservas registradas</small>
+          </article>
+          <article class="summary-card">
+            <span>Asistentes del mes</span>
+            <strong id="month-total-attendees">0</strong>
+            <small>personas reservadas</small>
+          </article>
+          <article class="summary-card">
+            <span>Aulas utilizadas</span>
+            <strong id="month-used-rooms">0</strong>
+            <small>espacios diferentes</small>
+          </article>
+        </div>
+
+        <div class="month-toolbar card">
+          <button class="icon-button" id="previous-month" type="button" aria-label="Mes anterior">‹</button>
+          <button class="button button-secondary" id="current-month" type="button">Este mes</button>
+          <strong id="month-label" aria-live="polite"></strong>
+          <button class="icon-button" id="next-month" type="button" aria-label="Mes siguiente">›</button>
+        </div>
+
+        <div class="card month-calendar-wrapper">
+          <div class="month-weekdays" aria-hidden="true">
+            <span>Lunes</span><span>Martes</span><span>Miércoles</span><span>Jueves</span><span>Viernes</span><span>Sábado</span><span>Domingo</span>
+          </div>
+          <div id="month-calendar" class="month-calendar" aria-live="polite"></div>
+        </div>
       </section>
 
       <section id="form-view" class="view" aria-labelledby="form-title">
@@ -204,7 +244,7 @@
                 <table class="reservation-email-table" aria-label="Detalle de la reserva">
                   <tbody>
                     <tr class="email-table-title"><th colspan="2" id="email-table-title">RESERVA DE AULA</th></tr>
-                    <tr class="email-table-location"><th>DATOS</th><th>GUAYAQUIL</th></tr>
+                    <tr class="email-table-location"><th>DATOS</th><th>QUITO</th></tr>
                     <tr class="email-table-date"><th>FECHA</th><td id="email-table-date"></td></tr>
                     <tr><th>RESPONSABLE DE LA RESERVA</th><td id="email-table-responsible"></td></tr>
                     <tr><th>DEPARTAMENTO / MARCA</th><td id="email-table-department"></td></tr>
@@ -225,9 +265,9 @@
               <textarea id="email-body" class="sr-only" readonly aria-label="Versión de texto del correo"></textarea>
               <div class="email-actions">
                 <button class="button button-primary" id="copy-email" type="button">Copiar correo con formato</button>
-                <a class="button button-secondary" id="open-email" href="#">Abrir correo en texto</a>
+                <button class="button button-secondary" id="open-email" type="button">Abrir correo con formato</button>
               </div>
-              <p class="panel-note">Para conservar la tabla y los colores, copia el correo con formato y pégalo en Outlook o Gmail. El destinatario se podrá completar cuando nos indiques la dirección.</p>
+              <p class="panel-note">La opción “Abrir correo con formato” genera un borrador `.eml` que conserva la tabla y los colores. Ábrelo con Outlook. El destinatario se podrá completar cuando nos indiques la dirección.</p>
             </div>
           </aside>
         </div>

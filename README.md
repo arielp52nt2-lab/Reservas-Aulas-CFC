@@ -11,6 +11,8 @@ Aplicación web local para registrar y consultar reservas de aulas por fecha.
 
 Las reservas se guardan en el almacenamiento local del navegador del equipo. Para compartir una copia del historial, usa **Descargar CSV**.
 
+El calendario mensual muestra el total de reservas, asistentes y aulas utilizadas. La opción **Abrir correo con formato** genera un archivo `.eml` para abrirlo como borrador en Outlook conservando la tabla y los colores.
+
 ## Espacios configurados
 
 - Piso 1: Atenea (Centro de cómputo, 24 personas) y Manuela Sáenz (Sala de capacitación, 60 personas).
@@ -20,4 +22,4 @@ Las reservas se guardan en el almacenamiento local del navegador del equipo. Par
 
 ## Versionado
 
-La versión visible en la aplicación y el archivo `CHANGELOG.md` registran los cambios. Cada entrega estable se conserva además en el historial Git del proyecto.
+El archivo `CHANGELOG.md` registra los cambios. Cada entrega estable se conserva en el historial Git y en una carpeta independiente dentro de `versiones`.

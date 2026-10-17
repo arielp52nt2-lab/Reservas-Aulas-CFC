@@ -1,6 +1,6 @@
 "use strict";
 
-const APP_VERSION = "1.1.0";
+const APP_VERSION = "1.2.0";
 const STORAGE_KEY = "cfc-reservas-v1";
 const ROOM_CATALOG = Object.freeze({
   "Piso 1": [
@@ -28,6 +28,7 @@ const LEGACY_ROOM_NAMES = Object.freeze({
 const state = {
   reservations: loadReservations(),
   weekStart: getStartOfWeek(new Date()),
+  monthDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1, 12),
   activeEmailId: null,
 };
 
@@ -56,6 +57,11 @@ const elements = {
   cancelEdit: document.querySelector("#cancel-edit"),
   weekLabel: document.querySelector("#week-label"),
   weekBoard: document.querySelector("#week-board"),
+  monthLabel: document.querySelector("#month-label"),
+  monthCalendar: document.querySelector("#month-calendar"),
+  monthTotalReservations: document.querySelector("#month-total-reservations"),
+  monthTotalAttendees: document.querySelector("#month-total-attendees"),
+  monthUsedRooms: document.querySelector("#month-used-rooms"),
   calendarFloor: document.querySelector("#calendar-floor"),
   calendarRoom: document.querySelector("#calendar-room"),
   historyBody: document.querySelector("#history-body"),
@@ -102,12 +108,20 @@ function bindEvents() {
   });
 
   document.querySelector("#calendar-new").addEventListener("click", startNewReservation);
+  document.querySelector("#month-new").addEventListener("click", startNewReservation);
   document.querySelector("#history-new").addEventListener("click", startNewReservation);
   document.querySelector("#previous-week").addEventListener("click", () => changeWeek(-7));
   document.querySelector("#next-week").addEventListener("click", () => changeWeek(7));
   document.querySelector("#today-week").addEventListener("click", () => {
     state.weekStart = getStartOfWeek(new Date());
     renderCalendar();
+  });
+  document.querySelector("#previous-month").addEventListener("click", () => changeMonth(-1));
+  document.querySelector("#next-month").addEventListener("click", () => changeMonth(1));
+  document.querySelector("#current-month").addEventListener("click", () => {
+    const today = new Date();
+    state.monthDate = new Date(today.getFullYear(), today.getMonth(), 1, 12);
+    renderMonthlyCalendar();
   });
 
   elements.floor.addEventListener("change", () => {
@@ -136,6 +150,7 @@ function bindEvents() {
   elements.historyPeriod.addEventListener("change", renderHistory);
   document.querySelector("#export-csv").addEventListener("click", exportCsv);
   document.querySelector("#copy-email").addEventListener("click", copyEmailMessage);
+  elements.openEmail.addEventListener("click", downloadFormattedEmail);
 }
 
 function loadReservations() {
@@ -176,6 +191,7 @@ function showView(name) {
   elements.tabs.forEach((button) => button.classList.toggle("is-active", button.dataset.tab === name));
   elements.views.forEach((view) => view.classList.toggle("is-active", view.id === `${name}-view`));
   if (name === "calendar") renderCalendar();
+  if (name === "month") renderMonthlyCalendar();
   if (name === "history") renderHistory();
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
@@ -455,6 +471,7 @@ function deleteReservation(id) {
 function renderAll() {
   state.reservations.sort(compareReservations);
   renderCalendar();
+  renderMonthlyCalendar();
   renderHistory();
   renderSummary();
 }
@@ -491,7 +508,6 @@ function renderCalendar() {
       list.innerHTML = '<p class="day-empty">Sin reservas</p>';
     } else {
       items.forEach((item) => {
-        const roomDetails = getRoomDetails(item.floor, item.room);
         const button = document.createElement("button");
         button.type = "button";
         button.className = "reservation-card";
@@ -500,7 +516,7 @@ function renderCalendar() {
           <strong>${escapeHtml(item.room)}</strong>
           <small>${escapeHtml(item.topic)}</small>
           <small>${escapeHtml(item.responsible)}</small>
-          ${roomDetails ? `<small>${escapeHtml(roomDetails.type)} · Aforo ${roomDetails.capacity}</small>` : ""}
+          <small>${escapeHtml(item.floor)} · ${Number(item.attendees)} ${Number(item.attendees) === 1 ? "persona" : "personas"}</small>
         `;
         button.addEventListener("click", () => editReservation(item.id));
         list.append(button);
@@ -514,6 +530,73 @@ function renderCalendar() {
 function changeWeek(days) {
   state.weekStart = addDays(state.weekStart, days);
   renderCalendar();
+}
+
+function changeMonth(months) {
+  state.monthDate = new Date(
+    state.monthDate.getFullYear(),
+    state.monthDate.getMonth() + months,
+    1,
+    12,
+  );
+  renderMonthlyCalendar();
+}
+
+function renderMonthlyCalendar() {
+  const year = state.monthDate.getFullYear();
+  const month = state.monthDate.getMonth();
+  const monthStart = new Date(year, month, 1, 12);
+  const gridStart = getStartOfWeek(monthStart);
+  const monthKey = `${year}-${String(month + 1).padStart(2, "0")}`;
+  const monthReservations = state.reservations.filter((item) => item.date.startsWith(monthKey));
+
+  elements.monthLabel.textContent = new Intl.DateTimeFormat("es-EC", {
+    month: "long",
+    year: "numeric",
+  }).format(monthStart);
+  elements.monthTotalReservations.textContent = String(monthReservations.length);
+  elements.monthTotalAttendees.textContent = String(
+    monthReservations.reduce((total, item) => total + Number(item.attendees || 0), 0),
+  );
+  elements.monthUsedRooms.textContent = String(new Set(monthReservations.map((item) => item.room)).size);
+  elements.monthCalendar.innerHTML = "";
+
+  const todayKey = formatDateKey(new Date());
+  Array.from({ length: 42 }, (_, index) => addDays(gridStart, index)).forEach((date) => {
+    const dateKey = formatDateKey(date);
+    const items = state.reservations.filter((item) => item.date === dateKey);
+    const cell = document.createElement("article");
+    cell.className = [
+      "month-day",
+      date.getMonth() !== month ? "is-outside" : "",
+      dateKey === todayKey ? "is-today" : "",
+    ]
+      .filter(Boolean)
+      .join(" ");
+    cell.innerHTML = `
+      <header class="month-day-header">
+        <span class="month-day-number">${date.getDate()}</span>
+        ${items.length ? `<span class="month-day-count">${items.length} ${items.length === 1 ? "reserva" : "reservas"}</span>` : ""}
+      </header>
+      <div class="month-reservations"></div>
+    `;
+    const list = cell.querySelector(".month-reservations");
+    items.slice(0, 3).forEach((item) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "month-reservation";
+      button.innerHTML = `<strong>${escapeHtml(item.startTime)} · ${escapeHtml(item.room)}</strong><span>${Number(item.attendees)} personas</span>`;
+      button.addEventListener("click", () => editReservation(item.id));
+      list.append(button);
+    });
+    if (items.length > 3) {
+      const more = document.createElement("span");
+      more.className = "month-more";
+      more.textContent = `+ ${items.length - 3} más`;
+      list.append(more);
+    }
+    elements.monthCalendar.append(cell);
+  });
 }
 
 function renderHistory() {
@@ -594,7 +677,6 @@ function showEmailPanel(id) {
   elements.emailTableSchedule.textContent = `${item.startTime} - ${item.endTime}`;
   elements.emailTableHours.textContent = formatHours(calculateHours(item.startTime, item.endTime));
   elements.emailTableRequester.textContent = item.responsible.toUpperCase();
-  elements.openEmail.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   elements.emailEmpty.classList.add("is-hidden");
   elements.emailContent.classList.remove("is-hidden");
 }
@@ -613,7 +695,7 @@ function buildEmailBody(item) {
     `Según lo conversado, te confirmo la reserva del aula ${item.room}, ubicada en el piso ${floorNumber}, para la fecha y el horario indicados.`,
     "",
     `RESERVA DE AULA - ${item.floor.toUpperCase()} / ${item.room.toUpperCase()}`,
-    "DATOS | GUAYAQUIL",
+    "DATOS | QUITO",
     `FECHA | ${formatEmailDate(item.date)}`,
     `RESPONSABLE DE LA RESERVA | ${item.responsible.toUpperCase()}`,
     `DEPARTAMENTO / MARCA | ${item.department.toUpperCase()}`,
@@ -641,17 +723,17 @@ function buildEmailHtml(item) {
   const hours = formatHours(calculateHours(item.startTime, item.endTime));
   const row = (label, value, highlighted = false) => `
     <tr>
-      <th style="width:44%;padding:7px 8px;color:#fff;background:#347db9;border:2px solid #111;text-align:left;font-family:Arial,sans-serif;font-size:12px;">${label}</th>
-      <td style="padding:7px 8px;color:#111;background:${highlighted ? "#ffe59e" : "#fff"};border:2px solid #111;text-align:center;font-family:Arial,sans-serif;font-size:12px;font-weight:700;">${escapeHtml(value)}</td>
+      <th style="width:44%;padding:7px 8px;color:#fff;background:#8f1537;border:2px solid #111;text-align:left;font-family:Arial,sans-serif;font-size:12px;">${label}</th>
+      <td style="padding:7px 8px;color:${highlighted ? "#fff" : "#111"};background:${highlighted ? "#a90d27" : "#fff"};border:2px solid #111;text-align:center;font-family:Arial,sans-serif;font-size:12px;font-weight:700;">${escapeHtml(value)}</td>
     </tr>`;
   return `
     <div style="color:#231f20;font-family:Arial,sans-serif;font-size:14px;line-height:1.5;">
       <p>Buenos días, <strong>${escapeHtml(item.responsible)}</strong>:</p>
       <p>Según lo conversado, te confirmo la reserva del aula <strong>${escapeHtml(item.room)}</strong>, ubicada en el piso <strong>${escapeHtml(floorNumber)}</strong>, para la fecha y el horario indicados.</p>
       <table cellpadding="0" cellspacing="0" style="width:100%;max-width:680px;margin:20px 0;border:3px solid #111;border-collapse:collapse;table-layout:fixed;">
-        <tr><th colspan="2" style="padding:8px;color:#fff;background:#347db9;border:2px solid #111;text-align:center;font-family:Arial,sans-serif;font-size:14px;">RESERVA DE AULA - ${escapeHtml(item.floor.toUpperCase())} / ${escapeHtml(item.room.toUpperCase())}</th></tr>
-        <tr><th style="width:44%;padding:7px 8px;color:#fff;background:#347db9;border:2px solid #111;text-align:center;font-family:Arial,sans-serif;font-size:12px;">DATOS</th><th style="padding:7px 8px;color:#fff;background:#28689d;border:2px solid #111;text-align:center;font-family:Arial,sans-serif;font-size:12px;">GUAYAQUIL</th></tr>
-        <tr><th style="padding:7px 8px;color:#fff;background:#347db9;border:2px solid #111;text-align:left;font-family:Arial,sans-serif;font-size:12px;">FECHA</th><td style="padding:7px 8px;color:#fff;background:#111;border:2px solid #111;text-align:center;font-family:Arial,sans-serif;font-size:12px;font-weight:700;">${escapeHtml(formatEmailDate(item.date))}</td></tr>
+        <tr><th colspan="2" style="padding:8px;color:#fff;background:#8f1537;border:2px solid #111;text-align:center;font-family:Arial,sans-serif;font-size:14px;">RESERVA DE AULA - ${escapeHtml(item.floor.toUpperCase())} / ${escapeHtml(item.room.toUpperCase())}</th></tr>
+        <tr><th style="width:44%;padding:7px 8px;color:#fff;background:#8f1537;border:2px solid #111;text-align:center;font-family:Arial,sans-serif;font-size:12px;">DATOS</th><th style="padding:7px 8px;color:#fff;background:#681126;border:2px solid #111;text-align:center;font-family:Arial,sans-serif;font-size:12px;">QUITO</th></tr>
+        <tr><th style="padding:7px 8px;color:#fff;background:#8f1537;border:2px solid #111;text-align:left;font-family:Arial,sans-serif;font-size:12px;">FECHA</th><td style="padding:7px 8px;color:#fff;background:#111;border:2px solid #111;text-align:center;font-family:Arial,sans-serif;font-size:12px;font-weight:700;">${escapeHtml(formatEmailDate(item.date))}</td></tr>
         ${row("RESPONSABLE DE LA RESERVA", item.responsible.toUpperCase(), true)}
         ${row("DEPARTAMENTO / MARCA", item.department.toUpperCase())}
         ${row("TEMA O MÓDULO", item.topic.toUpperCase())}
@@ -690,6 +772,50 @@ async function copyEmailMessage() {
     document.execCommand("copy");
     showToast("Se copió la versión en texto del correo.");
   }
+}
+
+function downloadFormattedEmail() {
+  const item = state.reservations.find((reservation) => reservation.id === state.activeEmailId);
+  if (!item) return;
+  const subject = elements.emailSubject.value;
+  const boundary = `CFC-${Date.now()}`;
+  const eml = [
+    "X-Unsent: 1",
+    `Subject: =?UTF-8?B?${toBase64Utf8(subject)}?=`,
+    "MIME-Version: 1.0",
+    `Content-Type: multipart/alternative; boundary="${boundary}"`,
+    "",
+    `--${boundary}`,
+    'Content-Type: text/plain; charset="UTF-8"',
+    "Content-Transfer-Encoding: base64",
+    "",
+    toBase64Utf8(elements.emailBody.value),
+    `--${boundary}`,
+    'Content-Type: text/html; charset="UTF-8"',
+    "Content-Transfer-Encoding: base64",
+    "",
+    toBase64Utf8(buildEmailHtml(item)),
+    `--${boundary}--`,
+    "",
+  ].join("\r\n");
+  const blob = new Blob([eml], { type: "message/rfc822" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = `reserva-${normalizeFileName(item.room)}-${item.date}.eml`;
+  link.click();
+  URL.revokeObjectURL(link.href);
+  showToast("Borrador con formato creado. Ábrelo con Outlook.");
+}
+
+function toBase64Utf8(value) {
+  const bytes = new TextEncoder().encode(String(value));
+  let binary = "";
+  bytes.forEach((byte) => (binary += String.fromCharCode(byte)));
+  return btoa(binary);
+}
+
+function normalizeFileName(value) {
+  return normalizeText(value).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 }
 
 function exportCsv() {

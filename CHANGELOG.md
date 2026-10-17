@@ -1,5 +1,16 @@
 # Historial de versiones
 
+## 1.2.0 — 17 de octubre de 2026
+
+- Se cambió la ubicación del correo de Guayaquil a Quito.
+- La tabla del correo ahora utiliza el color conchevino institucional y texto blanco en las celdas destacadas.
+- Se agregó la generación de borradores `.eml` con formato HTML para Outlook.
+- Se sustituyó el indicador de guardado y la versión visible por el logotipo institucional.
+- Se incorporó un logotipo transparente con relieve 3D sutil.
+- Las tarjetas semanales ahora muestran el piso y la cantidad reservada de asistentes.
+- Se agregó un calendario mensual con total de reservas, asistentes y aulas utilizadas.
+- Las entregas estables se conservan en carpetas separadas por versión.
+
 ## 1.1.0 — 17 de octubre de 2026
 
 - Se incorporó el logo proporcionado y la paleta institucional roja, negra, gris y blanca.

@@ -12,9 +12,9 @@
   --brand-red-dark: #9f0b23;
   --brand-black: #231f20;
   --brand-gray: #a7a5a6;
-  --table-blue: #347db9;
-  --table-blue-dark: #28689d;
-  --table-yellow: #ffe59e;
+  --table-blue: #8f1537;
+  --table-blue-dark: #681126;
+  --table-yellow: #a90d27;
   --surface: #ffffff;
   --background: #f4f7fa;
   --success: #147a55;
@@ -72,12 +72,24 @@ a {
 }
 
 .brand-logo {
-  width: 54px;
-  height: 54px;
-  object-fit: cover;
-  border: 3px solid rgba(255, 255, 255, 0.9);
-  border-radius: 50%;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.22);
+  width: 112px;
+  height: 62px;
+  padding: 5px 7px;
+  object-fit: contain;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  border-radius: 12px;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.26);
+}
+
+.header-group-logo {
+  width: clamp(170px, 19vw, 250px);
+  height: 60px;
+  padding: 5px 10px;
+  object-fit: contain;
+  background: rgba(255, 255, 255, 0.96);
+  border-radius: 12px;
+  filter: drop-shadow(0 8px 13px rgba(0, 0, 0, 0.24));
 }
 
 .eyebrow {
@@ -673,6 +685,7 @@ select:disabled {
 
 .reservation-email-table tr:nth-child(4) td {
   background: var(--table-yellow);
+  color: #fff;
 }
 
 .email-signature {
@@ -688,6 +701,136 @@ select:disabled {
   color: var(--muted);
   font-size: 0.76rem;
   line-height: 1.45;
+}
+
+.month-summary {
+  margin-bottom: 18px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.month-toolbar {
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  display: grid;
+  grid-template-columns: auto auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.month-toolbar strong {
+  color: var(--navy);
+  font-size: 1.08rem;
+  text-align: center;
+  text-transform: capitalize;
+}
+
+.month-calendar-wrapper {
+  overflow: hidden;
+}
+
+.month-weekdays,
+.month-calendar {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(130px, 1fr));
+}
+
+.month-weekdays {
+  min-width: 910px;
+  color: #fff;
+  background: var(--brand-black);
+}
+
+.month-weekdays span {
+  padding: 11px 8px;
+  border-right: 1px solid rgba(255, 255, 255, 0.15);
+  font-size: 0.76rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+.month-calendar {
+  min-width: 910px;
+}
+
+.month-day {
+  min-height: 132px;
+  padding: 9px;
+  background: #fff;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.month-day.is-outside {
+  background: #f5f3f4;
+}
+
+.month-day.is-today {
+  box-shadow: inset 0 0 0 2px var(--brand-red);
+}
+
+.month-day-header {
+  margin-bottom: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 7px;
+}
+
+.month-day-number {
+  width: 27px;
+  height: 27px;
+  display: grid;
+  place-items: center;
+  color: var(--navy);
+  background: #efedef;
+  border-radius: 7px;
+  font-size: 0.8rem;
+  font-weight: 900;
+}
+
+.month-day.is-today .month-day-number {
+  color: #fff;
+  background: var(--brand-red);
+}
+
+.month-day-count {
+  color: var(--brand-red);
+  font-size: 0.68rem;
+  font-weight: 900;
+}
+
+.month-reservations {
+  display: grid;
+  gap: 5px;
+}
+
+.month-reservation {
+  padding: 6px 7px;
+  color: #fff;
+  background: linear-gradient(120deg, var(--brand-red-dark), var(--brand-red));
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.67rem;
+  line-height: 1.3;
+  text-align: left;
+}
+
+.month-reservation strong,
+.month-reservation span {
+  display: block;
+}
+
+.month-reservation span {
+  opacity: 0.9;
+}
+
+.month-more {
+  color: var(--muted);
+  font-size: 0.67rem;
+  font-weight: 700;
 }
 
 .history-summary {
@@ -885,8 +1028,8 @@ tbody tr:hover {
     gap: 12px;
   }
 
-  .header-meta {
-    flex-wrap: wrap;
+  .header-group-logo {
+    width: 180px;
   }
 
   .app-shell {
@@ -896,7 +1039,7 @@ tbody tr:hover {
   .tabs {
     width: 100%;
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
   }
 
   .tab {
@@ -908,7 +1051,8 @@ tbody tr:hover {
   .history-filters,
   .three-columns,
   .two-columns,
-  .history-summary {
+  .history-summary,
+  .month-summary {
     grid-template-columns: 1fr;
   }
 
@@ -936,6 +1080,19 @@ tbody tr:hover {
 
   .week-board {
     grid-template-columns: repeat(7, minmax(210px, 1fr));
+  }
+
+  .month-toolbar {
+    grid-template-columns: auto 1fr auto;
+  }
+
+  .month-toolbar .button {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .month-calendar-wrapper {
+    overflow-x: auto;
   }
 }
 
