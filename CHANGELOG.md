@@ -1,5 +1,12 @@
 # Historial de versiones
 
+## 2.0.0 — 17 de octubre de 2026
+
+- Se incorporó almacenamiento centralizado mediante Netlify Blobs para compartir reservas entre dispositivos.
+- Las altas, ediciones y eliminaciones se guardan en una función del sitio y se reflejan automáticamente cada cuatro segundos.
+- Se agregó migración inicial de las reservas locales existentes al almacenamiento compartido.
+- El modo local se conserva como respaldo cuando se abre la aplicación fuera de Netlify.
+
 ## 1.5.0 — 17 de octubre de 2026
 
 - Se reforzó la persistencia local para que una reserva, edición o eliminación solo se refleje después de guardarse correctamente en el navegador.

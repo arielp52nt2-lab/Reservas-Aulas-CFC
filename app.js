@@ -1,7 +1,10 @@
 "use strict";
 
-const APP_VERSION = "1.5.0";
+const APP_VERSION = "2.0.0";
 const STORAGE_KEY = "cfc-reservas-v1";
+const SHARED_MIGRATION_KEY = "cfc-reservas-shared-migration-v1";
+const API_ENDPOINT = "/api/reservations";
+const SYNC_INTERVAL_MS = 4000;
 const ROOM_CATALOG = Object.freeze({
   "Piso 1": [
     { name: "Atenea", type: "Centro de cómputo", capacity: 24 },
@@ -30,6 +33,7 @@ const state = {
   weekStart: getStartOfWeek(new Date()),
   monthDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1, 12),
   activeEmailId: null,
+  syncInProgress: false,
 };
 
 const elements = {
@@ -95,11 +99,15 @@ const elements = {
 
 initialize();
 
-function initialize() {
+async function initialize() {
   setDefaultFormValues();
   bindEvents();
   populateRoomSelect(elements.calendarRoom, "");
   renderAll();
+  if (usesSharedStorage()) {
+    await synchronizeWithServer({ migrateLocal: true, silent: true });
+    window.setInterval(() => synchronizeWithServer({ silent: true }), SYNC_INTERVAL_MS);
+  }
 }
 
 function bindEvents() {
@@ -152,6 +160,9 @@ function bindEvents() {
   document.querySelector("#copy-email").addEventListener("click", copyEmailMessage);
   elements.openEmail.addEventListener("click", openFormattedEmail);
   window.addEventListener("storage", synchronizeStoredReservations);
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) synchronizeWithServer({ silent: true });
+  });
 }
 
 function loadReservations() {
@@ -191,6 +202,71 @@ function saveReservations(reservations = state.reservations) {
   } catch (error) {
     console.error("No se pudieron guardar las reservas.", error);
     showToast("No se pudo guardar el cambio. Revisa el almacenamiento del navegador.");
+    return false;
+  }
+}
+
+function usesSharedStorage() {
+  return window.location.protocol === "https:" && !window.location.hostname.endsWith("github.io");
+}
+
+async function requestSharedReservations(method = "GET", body) {
+  const response = await fetch(API_ENDPOINT, {
+    method,
+    headers: body ? { "Content-Type": "application/json" } : undefined,
+    body: body ? JSON.stringify(body) : undefined,
+    cache: "no-store",
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(payload.error || "No se pudo completar la operación compartida.");
+  return payload.reservations.map(migrateStoredReservation).filter(isValidStoredReservation);
+}
+
+async function synchronizeWithServer({ migrateLocal = false, silent = false } = {}) {
+  if (!usesSharedStorage() || state.syncInProgress) return false;
+  state.syncInProgress = true;
+  try {
+    if (migrateLocal && !localStorage.getItem(SHARED_MIGRATION_KEY) && state.reservations.length) {
+      await requestSharedReservations("PUT", { reservations: state.reservations });
+      localStorage.setItem(SHARED_MIGRATION_KEY, "done");
+    }
+    const reservations = await requestSharedReservations();
+    state.reservations = reservations;
+    saveReservations(reservations);
+    if (state.activeEmailId && !reservations.some((item) => item.id === state.activeEmailId)) hideEmailPanel();
+    renderAll();
+    return true;
+  } catch (error) {
+    console.error("No se pudieron sincronizar las reservas compartidas.", error);
+    if (!silent) showToast(error.message);
+    return false;
+  } finally {
+    state.syncInProgress = false;
+  }
+}
+
+async function saveSharedReservation(reservation) {
+  try {
+    const reservations = await requestSharedReservations("POST", { reservation });
+    state.reservations = reservations;
+    saveReservations(reservations);
+    return true;
+  } catch (error) {
+    console.error("No se pudo guardar la reserva compartida.", error);
+    showToast(error.message);
+    return false;
+  }
+}
+
+async function deleteSharedReservation(id) {
+  try {
+    const reservations = await requestSharedReservations("DELETE", { id });
+    state.reservations = reservations;
+    saveReservations(reservations);
+    return true;
+  } catch (error) {
+    console.error("No se pudo eliminar la reserva compartida.", error);
+    showToast(error.message);
     return false;
   }
 }
@@ -336,7 +412,7 @@ function findConflict(candidate) {
   );
 }
 
-function handleSubmit(event) {
+async function handleSubmit(event) {
   event.preventDefault();
   clearFieldErrors();
   const data = collectFormData();
@@ -356,8 +432,12 @@ function handleSubmit(event) {
     nextReservations.push(data);
   }
 
-  if (!saveReservations(nextReservations)) return;
-  state.reservations = nextReservations;
+  if (usesSharedStorage()) {
+    if (!(await saveSharedReservation(data))) return;
+  } else {
+    if (!saveReservations(nextReservations)) return;
+    state.reservations = nextReservations;
+  }
   state.activeEmailId = data.id;
   renderAll();
   showEmailPanel(data.id);
@@ -473,14 +553,18 @@ function editReservation(id) {
   showView("form");
 }
 
-function deleteReservation(id) {
+async function deleteReservation(id) {
   const item = state.reservations.find((reservation) => reservation.id === id);
   if (!item) return;
   const confirmed = window.confirm(`¿Eliminar la reserva de ${item.room} del ${formatLongDate(item.date)}?`);
   if (!confirmed) return;
   const nextReservations = state.reservations.filter((reservation) => reservation.id !== id);
-  if (!saveReservations(nextReservations)) return;
-  state.reservations = nextReservations;
+  if (usesSharedStorage()) {
+    if (!(await deleteSharedReservation(id))) return;
+  } else {
+    if (!saveReservations(nextReservations)) return;
+    state.reservations = nextReservations;
+  }
   if (state.activeEmailId === id) hideEmailPanel();
   renderAll();
   showToast("Reserva eliminada.");

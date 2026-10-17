@@ -1,5 +1,7 @@
 analysis-output/
 analyze-reservas.mjs
 versiones/
+node_modules/
+.netlify/
 .DS_Store
 Thumbs.db
