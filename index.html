@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Sistema local de reservas de aulas del CFC" />
+    <title>Reservas de aulas CFC</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="app-header">
+      <div class="brand" aria-label="Centro de Formación Continua">
+        <div class="brand-mark" aria-hidden="true">CFC</div>
+        <div>
+          <p class="eyebrow">Centro de Formación Continua</p>
+          <h1>Reservas de aulas</h1>
+        </div>
+      </div>
+      <div class="header-meta">
+        <span class="status-dot" aria-hidden="true"></span>
+        Datos guardados en este equipo
+        <span class="version">v1.0.0</span>
+      </div>
+    </header>
+
+    <main class="app-shell">
+      <nav class="tabs" aria-label="Secciones principales">
+        <button class="tab is-active" data-tab="calendar" type="button">Calendario</button>
+        <button class="tab" data-tab="form" type="button">Nueva reserva</button>
+        <button class="tab" data-tab="history" type="button">Historial</button>
+      </nav>
+
+      <section id="calendar-view" class="view is-active" aria-labelledby="calendar-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Vista semanal</p>
+            <h2 id="calendar-title">Disponibilidad de aulas</h2>
+            <p class="section-copy">Consulta las reservas por semana, piso o aula.</p>
+          </div>
+          <button class="button button-primary" id="calendar-new" type="button">Crear reserva</button>
+        </div>
+
+        <div class="toolbar card">
+          <div class="week-controls" aria-label="Controles de semana">
+            <button class="icon-button" id="previous-week" type="button" aria-label="Semana anterior">‹</button>
+            <button class="button button-secondary" id="today-week" type="button">Esta semana</button>
+            <button class="icon-button" id="next-week" type="button" aria-label="Semana siguiente">›</button>
+          </div>
+          <div class="week-label" id="week-label" aria-live="polite"></div>
+          <div class="filter-group">
+            <label>
+              <span>Piso</span>
+              <select id="calendar-floor">
+                <option value="">Todos</option>
+                <option value="Piso 1">Piso 1</option>
+                <option value="Piso 2">Piso 2</option>
+                <option value="Piso 3">Piso 3</option>
+                <option value="Piso 4">Piso 4</option>
+              </select>
+            </label>
+            <label>
+              <span>Aula</span>
+              <select id="calendar-room">
+                <option value="">Todas</option>
+              </select>
+            </label>
+          </div>
+        </div>
+
+        <div id="week-board" class="week-board" aria-live="polite"></div>
+      </section>
+
+      <section id="form-view" class="view" aria-labelledby="form-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Registro</p>
+            <h2 id="form-title">Nueva reserva</h2>
+            <p class="section-copy">Completa los datos. El sistema revisará automáticamente si el aula está disponible.</p>
+          </div>
+        </div>
+
+        <div class="form-layout">
+          <form id="reservation-form" class="card reservation-form" novalidate>
+            <input id="reservation-id" type="hidden" />
+
+            <div class="form-section">
+              <div class="form-section-title">
+                <span>1</span>
+                <h3>Fecha y espacio</h3>
+              </div>
+              <div class="form-grid three-columns">
+                <label class="field">
+                  <span>Fecha <strong>*</strong></span>
+                  <input id="date" name="date" type="date" required />
+                  <small class="field-error"></small>
+                </label>
+                <label class="field">
+                  <span>Piso <strong>*</strong></span>
+                  <select id="floor" name="floor" required>
+                    <option value="">Selecciona un piso</option>
+                    <option value="Piso 1">Piso 1</option>
+                    <option value="Piso 2">Piso 2</option>
+                    <option value="Piso 3">Piso 3</option>
+                    <option value="Piso 4">Piso 4</option>
+                  </select>
+                  <small class="field-error"></small>
+                </label>
+                <label class="field">
+                  <span>Aula <strong>*</strong></span>
+                  <select id="room" name="room" required disabled>
+                    <option value="">Selecciona primero el piso</option>
+                  </select>
+                  <small class="field-error"></small>
+                </label>
+              </div>
+              <div class="form-grid three-columns">
+                <label class="field">
+                  <span>Hora de inicio <strong>*</strong></span>
+                  <input id="start-time" name="startTime" type="time" required />
+                  <small class="field-error"></small>
+                </label>
+                <label class="field">
+                  <span>Hora de fin <strong>*</strong></span>
+                  <input id="end-time" name="endTime" type="time" required />
+                  <small class="field-error"></small>
+                </label>
+                <div class="field readonly-field">
+                  <span>Total de horas</span>
+                  <output id="total-hours">—</output>
+                </div>
+              </div>
+              <div id="availability-message" class="availability-message" aria-live="polite"></div>
+            </div>
+
+            <div class="form-section">
+              <div class="form-section-title">
+                <span>2</span>
+                <h3>Datos de la actividad</h3>
+              </div>
+              <div class="form-grid two-columns">
+                <label class="field">
+                  <span>Responsable de la reserva <strong>*</strong></span>
+                  <input id="responsible" name="responsible" type="text" maxlength="100" autocomplete="name" required />
+                  <small class="field-error"></small>
+                </label>
+                <label class="field">
+                  <span>Departamento / marca <strong>*</strong></span>
+                  <input id="department" name="department" type="text" maxlength="100" required />
+                  <small class="field-error"></small>
+                </label>
+                <label class="field field-wide">
+                  <span>Tema o módulo <strong>*</strong></span>
+                  <input id="topic" name="topic" type="text" maxlength="160" required />
+                  <small class="field-error"></small>
+                </label>
+                <label class="field">
+                  <span>Número de asistentes <strong>*</strong></span>
+                  <input id="attendees" name="attendees" type="number" min="1" step="1" required />
+                  <small class="field-error"></small>
+                </label>
+                <label class="field">
+                  <span>Facilitador</span>
+                  <input id="facilitator" name="facilitator" type="text" maxlength="100" />
+                  <small class="field-error"></small>
+                </label>
+                <label class="field field-wide">
+                  <span>Observaciones</span>
+                  <textarea id="notes" name="notes" rows="3" maxlength="500" placeholder="Equipos, disposición del aula u otra información importante"></textarea>
+                  <small class="field-error"></small>
+                </label>
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button class="button button-secondary is-hidden" id="cancel-edit" type="button">Cancelar edición</button>
+              <button class="button button-primary" id="save-reservation" type="submit">Guardar reserva</button>
+            </div>
+          </form>
+
+          <aside id="email-panel" class="card email-panel" aria-labelledby="email-title">
+            <div class="email-empty" id="email-empty">
+              <div class="email-icon" aria-hidden="true">✉</div>
+              <h3>Mensaje para correo</h3>
+              <p>Cuando guardes o selecciones una reserva, aquí aparecerá un mensaje listo para copiar.</p>
+            </div>
+            <div class="email-content is-hidden" id="email-content">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">Confirmación</p>
+                  <h3 id="email-title">Mensaje para correo</h3>
+                </div>
+                <span class="success-badge">Reserva guardada</span>
+              </div>
+              <label class="field">
+                <span>Asunto</span>
+                <input id="email-subject" type="text" readonly />
+              </label>
+              <label class="field">
+                <span>Mensaje</span>
+                <textarea id="email-body" rows="16" readonly></textarea>
+              </label>
+              <div class="email-actions">
+                <button class="button button-secondary" id="copy-email" type="button">Copiar mensaje</button>
+                <a class="button button-primary" id="open-email" href="#">Abrir correo</a>
+              </div>
+              <p class="panel-note">El destinatario puede agregarse cuando nos indiques a qué correo debe enviarse.</p>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section id="history-view" class="view" aria-labelledby="history-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Administración</p>
+            <h2 id="history-title">Historial de reservas</h2>
+            <p class="section-copy">Busca, edita, prepara el correo o elimina una reserva.</p>
+          </div>
+          <div class="heading-actions">
+            <button class="button button-secondary" id="export-csv" type="button">Descargar CSV</button>
+            <button class="button button-primary" id="history-new" type="button">Crear reserva</button>
+          </div>
+        </div>
+
+        <div class="history-summary" aria-label="Resumen de reservas">
+          <article class="summary-card">
+            <span>Total</span>
+            <strong id="summary-total">0</strong>
+            <small>reservas registradas</small>
+          </article>
+          <article class="summary-card">
+            <span>Próximas</span>
+            <strong id="summary-upcoming">0</strong>
+            <small>desde hoy</small>
+          </article>
+          <article class="summary-card">
+            <span>Esta semana</span>
+            <strong id="summary-week">0</strong>
+            <small>en el calendario</small>
+          </article>
+        </div>
+
+        <div class="card history-card">
+          <div class="history-filters">
+            <label class="search-field">
+              <span class="sr-only">Buscar reservas</span>
+              <input id="history-search" type="search" placeholder="Buscar por responsable, tema, departamento o aula" />
+            </label>
+            <label>
+              <span class="sr-only">Filtrar por piso</span>
+              <select id="history-floor">
+                <option value="">Todos los pisos</option>
+                <option value="Piso 1">Piso 1</option>
+                <option value="Piso 2">Piso 2</option>
+                <option value="Piso 3">Piso 3</option>
+                <option value="Piso 4">Piso 4</option>
+              </select>
+            </label>
+            <label>
+              <span class="sr-only">Filtrar por periodo</span>
+              <select id="history-period">
+                <option value="all">Todas las fechas</option>
+                <option value="upcoming">Próximas</option>
+                <option value="past">Pasadas</option>
+              </select>
+            </label>
+          </div>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Fecha</th>
+                  <th>Horario</th>
+                  <th>Espacio</th>
+                  <th>Responsable</th>
+                  <th>Actividad</th>
+                  <th>Asistentes</th>
+                  <th class="actions-column">Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="history-body"></tbody>
+            </table>
+          </div>
+          <div id="history-empty" class="empty-state is-hidden">
+            <h3>No hay reservas para mostrar</h3>
+            <p>Cambia los filtros o crea una nueva reserva.</p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
