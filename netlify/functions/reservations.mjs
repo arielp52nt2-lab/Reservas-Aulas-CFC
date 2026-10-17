@@ -61,17 +61,35 @@ export default async function handler(request) {
     }
 
     if (request.method === "POST") {
-      const { reservation } = await request.json();
-      if (!isValidReservation(reservation)) return json({ error: "Los datos de la reserva no son válidos." }, 400);
+      const body = await request.json();
+      const incoming = Array.isArray(body.reservations) ? body.reservations : [body.reservation];
+      if (!incoming.length || incoming.length > 7 || incoming.some((item) => !isValidReservation(item))) {
+        return json({ error: "Los datos de las reservas no son válidos o superan el máximo de 7 días." }, 400);
+      }
+      if (new Set(incoming.map((item) => item.id)).size !== incoming.length) {
+        return json({ error: "Las reservas contienen identificadores repetidos." }, 400);
+      }
+
       const reservations = await readReservations(store);
-      const conflict = findConflict(reservations, reservation);
-      if (conflict) {
+      const checkedReservations = [...reservations];
+      let conflictDetails = null;
+      for (const reservation of incoming) {
+        const conflict = findConflict(checkedReservations, reservation);
+        if (conflict) {
+          conflictDetails = { reservation, conflict };
+          break;
+        }
+        checkedReservations.push(reservation);
+      }
+      if (conflictDetails) {
         return json(
-          { error: `${reservation.room} ya está reservada de ${conflict.startTime} a ${conflict.endTime}.` },
+          {
+            error: `${conflictDetails.reservation.room} ya está reservada el ${conflictDetails.reservation.date} de ${conflictDetails.conflict.startTime} a ${conflictDetails.conflict.endTime}.`,
+          },
           409,
         );
       }
-      await store.setJSON(`${PREFIX}${reservation.id}`, reservation);
+      await Promise.all(incoming.map((reservation) => store.setJSON(`${PREFIX}${reservation.id}`, reservation)));
       return json({ reservations: await readReservations(store) });
     }
 

@@ -1,5 +1,12 @@
 # Historial de versiones
 
+## 2.1.0 — 17 de octubre de 2026
+
+- Se agregó la selección de fecha inicial y fecha final para reservar hasta siete días consecutivos en una sola operación.
+- Cada día del período se registra y aparece individualmente en los calendarios semanal y mensual.
+- La disponibilidad se valida para todo el período antes de guardar; si existe un conflicto, no se crea una reserva parcial.
+- El correo de confirmación muestra el período completo cuando la reserva incluye varios días.
+
 ## 2.0.0 — 17 de octubre de 2026
 
 - Se incorporó almacenamiento centralizado mediante Netlify Blobs para compartir reservas entre dispositivos.

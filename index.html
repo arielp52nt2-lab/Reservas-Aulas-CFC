@@ -128,10 +128,16 @@
                 <span>1</span>
                 <h3>Fecha y espacio</h3>
               </div>
-              <div class="form-grid three-columns">
+              <div class="form-grid four-columns">
                 <label class="field">
-                  <span>Fecha <strong>*</strong></span>
+                  <span>Fecha inicial <strong>*</strong></span>
                   <input id="date" name="date" type="date" required />
+                  <small class="field-error"></small>
+                </label>
+                <label class="field">
+                  <span>Fecha final <strong>*</strong></span>
+                  <input id="end-date" name="end-date" type="date" required />
+                  <small class="field-help">Puedes reservar hasta 7 días consecutivos.</small>
                   <small class="field-error"></small>
                 </label>
                 <label class="field">
@@ -239,13 +245,13 @@
               </label>
               <div id="email-preview" class="email-preview">
                 <p>Buenos días, <strong id="email-name"></strong>:</p>
-                <p>Según lo conversado, te confirmo la reserva del aula <strong id="email-room-text"></strong>, ubicada en el piso <strong id="email-floor-number"></strong>, para la fecha y el horario indicados.</p>
+                <p>Según lo conversado, te confirmo la reserva del aula <strong id="email-room-text"></strong>, ubicada en el piso <strong id="email-floor-number"></strong>, para el período y el horario indicados.</p>
 
                 <table class="reservation-email-table" aria-label="Detalle de la reserva">
                   <tbody>
                     <tr class="email-table-title"><th colspan="2" id="email-table-title">RESERVA DE AULA</th></tr>
                     <tr class="email-table-location"><th>DATOS</th><th>QUITO</th></tr>
-                    <tr class="email-table-date"><th>FECHA</th><td id="email-table-date"></td></tr>
+                    <tr class="email-table-date"><th>PERÍODO</th><td id="email-table-date"></td></tr>
                     <tr><th>RESPONSABLE DE LA RESERVA</th><td id="email-table-responsible"></td></tr>
                     <tr><th>DEPARTAMENTO / MARCA</th><td id="email-table-department"></td></tr>
                     <tr><th>TEMA O MÓDULO</th><td id="email-table-topic"></td></tr>

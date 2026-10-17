@@ -1,10 +1,11 @@
 "use strict";
 
-const APP_VERSION = "2.0.0";
+const APP_VERSION = "2.1.0";
 const STORAGE_KEY = "cfc-reservas-v1";
 const SHARED_MIGRATION_KEY = "cfc-reservas-shared-migration-v1";
 const API_ENDPOINT = "/api/reservations";
 const SYNC_INTERVAL_MS = 4000;
+const MAX_RESERVATION_DAYS = 7;
 const ROOM_CATALOG = Object.freeze({
   "Piso 1": [
     { name: "Atenea", type: "Centro de cómputo", capacity: 24 },
@@ -43,6 +44,7 @@ const elements = {
   formTitle: document.querySelector("#form-title"),
   id: document.querySelector("#reservation-id"),
   date: document.querySelector("#date"),
+  endDate: document.querySelector("#end-date"),
   floor: document.querySelector("#floor"),
   room: document.querySelector("#room"),
   roomDetails: document.querySelector("#room-details"),
@@ -137,7 +139,11 @@ function bindEvents() {
     updateRoomDetails();
     updateAvailability();
   });
-  elements.date.addEventListener("change", updateAvailability);
+  elements.date.addEventListener("change", () => {
+    updateEndDateLimits();
+    updateAvailability();
+  });
+  elements.endDate.addEventListener("change", updateAvailability);
   elements.room.addEventListener("change", () => {
     updateRoomDetails();
     updateAvailability();
@@ -245,14 +251,14 @@ async function synchronizeWithServer({ migrateLocal = false, silent = false } = 
   }
 }
 
-async function saveSharedReservation(reservation) {
+async function saveSharedReservations(reservations) {
   try {
-    const reservations = await requestSharedReservations("POST", { reservation });
-    state.reservations = reservations;
-    saveReservations(reservations);
+    const updatedReservations = await requestSharedReservations("POST", { reservations });
+    state.reservations = updatedReservations;
+    saveReservations(updatedReservations);
     return true;
   } catch (error) {
-    console.error("No se pudo guardar la reserva compartida.", error);
+    console.error("No se pudieron guardar las reservas compartidas.", error);
     showToast(error.message);
     return false;
   }
@@ -297,7 +303,11 @@ function startNewReservation() {
 }
 
 function setDefaultFormValues() {
-  elements.date.value = formatDateKey(new Date());
+  const today = formatDateKey(new Date());
+  elements.date.value = today;
+  elements.endDate.value = today;
+  elements.endDate.disabled = false;
+  updateEndDateLimits();
   elements.startTime.value = "08:00";
   elements.endTime.value = "09:00";
   updateTimeSummary();
@@ -309,6 +319,7 @@ function resetForm() {
   elements.formTitle.textContent = "Nueva reserva";
   elements.saveButton.textContent = "Guardar reserva";
   elements.cancelEdit.classList.add("is-hidden");
+  elements.endDate.disabled = false;
   elements.room.disabled = true;
   elements.room.innerHTML = '<option value="">Selecciona primero el piso</option>';
   elements.roomDetails.textContent = "";
@@ -318,6 +329,24 @@ function resetForm() {
   elements.availability.textContent = "";
   elements.availability.className = "availability-message";
   setDefaultFormValues();
+}
+
+function updateEndDateLimits() {
+  if (!elements.date.value) {
+    elements.endDate.min = "";
+    elements.endDate.max = "";
+    return;
+  }
+  const maximumDate = formatDateKey(addDays(parseLocalDate(elements.date.value), MAX_RESERVATION_DAYS - 1));
+  elements.endDate.min = elements.date.value;
+  elements.endDate.max = maximumDate;
+  if (
+    !elements.endDate.value ||
+    elements.endDate.value < elements.date.value ||
+    elements.endDate.value > maximumDate
+  ) {
+    elements.endDate.value = elements.date.value;
+  }
 }
 
 function populateRoomSelect(select, floor, placeholderForForm = false) {
@@ -382,23 +411,44 @@ function updateAvailability() {
   const data = {
     id: elements.id.value,
     date: elements.date.value,
+    endDate: elements.endDate.value,
     room: elements.room.value,
     startTime: elements.startTime.value,
     endTime: elements.endTime.value,
   };
   elements.availability.className = "availability-message";
-  if (!data.date || !data.room || calculateHours(data.startTime, data.endTime) === null) {
+  const reservationDates = getReservationDateKeys(data.date, data.endDate);
+  if (!reservationDates.length || !data.room || calculateHours(data.startTime, data.endTime) === null) {
     elements.availability.textContent = "";
     return;
   }
-  const conflict = findConflict(data);
+  const conflict = reservationDates
+    .map((date) => ({ date, reservation: findConflict({ ...data, date }) }))
+    .find(({ reservation }) => reservation);
   if (conflict) {
-    elements.availability.textContent = `Horario ocupado por ${conflict.responsible}: ${conflict.startTime} a ${conflict.endTime}.`;
+    elements.availability.textContent = `Horario ocupado el ${formatCompactDate(conflict.date)} por ${conflict.reservation.responsible}: ${conflict.reservation.startTime} a ${conflict.reservation.endTime}.`;
     elements.availability.classList.add("is-conflict");
   } else {
-    elements.availability.textContent = "Aula disponible en este horario.";
+    elements.availability.textContent =
+      reservationDates.length === 1
+        ? "Aula disponible en este horario."
+        : `Aula disponible durante los ${reservationDates.length} días seleccionados.`;
     elements.availability.classList.add("is-available");
   }
+}
+
+function getReservationDateKeys(startDate, endDate) {
+  if (!startDate || !endDate) return [];
+  const start = parseLocalDate(startDate);
+  const end = parseLocalDate(endDate);
+  if (end < start) return [];
+  const dates = [];
+  for (let offset = 0; offset < MAX_RESERVATION_DAYS; offset += 1) {
+    const current = addDays(start, offset);
+    if (current > end) break;
+    dates.push(formatDateKey(current));
+  }
+  return dates.at(-1) === endDate ? dates : [];
 }
 
 function findConflict(candidate) {
@@ -420,35 +470,67 @@ async function handleSubmit(event) {
 
   const now = new Date().toISOString();
   const existingIndex = state.reservations.findIndex((item) => item.id === data.id);
-  const nextReservations = [...state.reservations];
+  const { endDate, ...reservationData } = data;
+  let reservationsToSave;
+  let nextReservations;
   if (existingIndex >= 0) {
-    data.createdAt = state.reservations[existingIndex].createdAt;
-    data.updatedAt = now;
-    nextReservations[existingIndex] = data;
+    const updatedReservation = {
+      ...reservationData,
+      createdAt: state.reservations[existingIndex].createdAt,
+      updatedAt: now,
+    };
+    reservationsToSave = [updatedReservation];
+    nextReservations = [...state.reservations];
+    nextReservations[existingIndex] = updatedReservation;
   } else {
-    data.id = createId();
-    data.createdAt = now;
-    data.updatedAt = now;
-    nextReservations.push(data);
+    const reservationDates = getReservationDateKeys(data.date, endDate);
+    const seriesId = reservationDates.length > 1 ? createId() : "";
+    reservationsToSave = reservationDates.map((date) => ({
+      ...reservationData,
+      id: createId(),
+      date,
+      seriesId,
+      seriesStart: data.date,
+      seriesEnd: endDate,
+      createdAt: now,
+      updatedAt: now,
+    }));
+    nextReservations = [...state.reservations, ...reservationsToSave];
   }
 
+  elements.saveButton.disabled = true;
   if (usesSharedStorage()) {
-    if (!(await saveSharedReservation(data))) return;
+    if (!(await saveSharedReservations(reservationsToSave))) {
+      elements.saveButton.disabled = false;
+      return;
+    }
   } else {
-    if (!saveReservations(nextReservations)) return;
+    if (!saveReservations(nextReservations)) {
+      elements.saveButton.disabled = false;
+      return;
+    }
     state.reservations = nextReservations;
   }
-  state.activeEmailId = data.id;
+  elements.saveButton.disabled = false;
+  const activeReservation = reservationsToSave[0];
+  state.activeEmailId = activeReservation.id;
   renderAll();
-  showEmailPanel(data.id);
+  showEmailPanel(activeReservation.id);
   resetForm();
-  showToast(existingIndex >= 0 ? "Reserva actualizada correctamente." : "Reserva guardada correctamente.");
+  showToast(
+    existingIndex >= 0
+      ? "Reserva actualizada correctamente."
+      : reservationsToSave.length === 1
+        ? "Reserva guardada correctamente."
+        : `${reservationsToSave.length} reservas guardadas, una por cada día seleccionado.`,
+  );
 }
 
 function collectFormData() {
   return {
     id: elements.id.value,
     date: elements.date.value,
+    endDate: elements.endDate.value,
     floor: elements.floor.value,
     room: elements.room.value,
     startTime: elements.startTime.value,
@@ -466,7 +548,8 @@ function collectFormData() {
 function validateReservation(data) {
   let valid = true;
   const required = [
-    [elements.date, data.date, "Selecciona la fecha."],
+    [elements.date, data.date, "Selecciona la fecha inicial."],
+    [elements.endDate, data.endDate, "Selecciona la fecha final."],
     [elements.floor, data.floor, "Selecciona el piso."],
     [elements.room, data.room, "Selecciona el aula."],
     [elements.startTime, data.startTime, "Indica la hora de inicio."],
@@ -498,11 +581,21 @@ function validateReservation(data) {
     valid = false;
   }
 
-  const conflict = valid ? findConflict(data) : null;
+  const reservationDates = getReservationDateKeys(data.date, data.endDate);
+  if (data.date && data.endDate && !reservationDates.length) {
+    setFieldError(elements.endDate, `La fecha final debe estar entre la fecha inicial y un máximo de ${MAX_RESERVATION_DAYS} días.`);
+    valid = false;
+  }
+
+  const conflict = valid
+    ? reservationDates
+        .map((date) => ({ date, reservation: findConflict({ ...data, date }) }))
+        .find(({ reservation }) => reservation)
+    : null;
   if (conflict) {
     setFieldError(elements.startTime, "Este horario se cruza con otra reserva.");
-    setFieldError(elements.endTime, `${conflict.responsible}: ${conflict.startTime} a ${conflict.endTime}.`);
-    elements.availability.textContent = `No se puede guardar: ${data.room} ya está reservada de ${conflict.startTime} a ${conflict.endTime}.`;
+    setFieldError(elements.endTime, `${formatCompactDate(conflict.date)} · ${conflict.reservation.responsible}: ${conflict.reservation.startTime} a ${conflict.reservation.endTime}.`);
+    elements.availability.textContent = `No se puede guardar: ${data.room} ya está reservada el ${formatCompactDate(conflict.date)} de ${conflict.reservation.startTime} a ${conflict.reservation.endTime}.`;
     elements.availability.className = "availability-message is-conflict";
     valid = false;
   }
@@ -532,6 +625,9 @@ function editReservation(id) {
   if (!item) return;
   elements.id.value = item.id;
   elements.date.value = item.date;
+  elements.endDate.value = item.date;
+  updateEndDateLimits();
+  elements.endDate.disabled = true;
   elements.floor.value = item.floor;
   populateRoomSelect(elements.room, item.floor, true);
   elements.room.value = item.room;
@@ -767,7 +863,7 @@ function showEmailPanel(id) {
   const item = state.reservations.find((reservation) => reservation.id === id);
   if (!item) return;
   state.activeEmailId = id;
-  const subject = `Reserva de aula | ${item.room} | ${formatCompactDate(item.date)}`;
+  const subject = `Reserva de aula | ${item.room} | ${formatReservationPeriod(item, formatCompactDate)}`;
   const body = buildEmailBody(item);
   const floorNumber = item.floor.replace(/[^0-9]/g, "");
   elements.emailSubject.value = subject;
@@ -776,7 +872,7 @@ function showEmailPanel(id) {
   elements.emailRoomText.textContent = item.room;
   elements.emailFloorNumber.textContent = floorNumber;
   elements.emailTableTitle.textContent = `RESERVA DE AULA - ${item.floor.toUpperCase()} / ${item.room.toUpperCase()}`;
-  elements.emailTableDate.textContent = formatEmailDate(item.date);
+  elements.emailTableDate.textContent = formatReservationPeriod(item, formatEmailDate);
   elements.emailTableResponsible.textContent = item.responsible.toUpperCase();
   elements.emailTableDepartment.textContent = item.department.toUpperCase();
   elements.emailTableTopic.textContent = item.topic.toUpperCase();
@@ -799,11 +895,11 @@ function buildEmailBody(item) {
   const lines = [
     `Buenos días, ${item.responsible}:`,
     "",
-    `Según lo conversado, te confirmo la reserva del aula ${item.room}, ubicada en el piso ${floorNumber}, para la fecha y el horario indicados.`,
+    `Según lo conversado, te confirmo la reserva del aula ${item.room}, ubicada en el piso ${floorNumber}, para el período y el horario indicados.`,
     "",
     `RESERVA DE AULA - ${item.floor.toUpperCase()} / ${item.room.toUpperCase()}`,
     "DATOS | QUITO",
-    `FECHA | ${formatEmailDate(item.date)}`,
+    `PERÍODO | ${formatReservationPeriod(item, formatEmailDate)}`,
     `RESPONSABLE DE LA RESERVA | ${item.responsible.toUpperCase()}`,
     `DEPARTAMENTO / MARCA | ${item.department.toUpperCase()}`,
     `TEMA O MÓDULO | ${item.topic.toUpperCase()}`,
@@ -836,11 +932,11 @@ function buildEmailHtml(item) {
   return `
     <div style="color:#231f20;font-family:Arial,sans-serif;font-size:14px;line-height:1.5;">
       <p>Buenos días, <strong>${escapeHtml(item.responsible)}</strong>:</p>
-      <p>Según lo conversado, te confirmo la reserva del aula <strong>${escapeHtml(item.room)}</strong>, ubicada en el piso <strong>${escapeHtml(floorNumber)}</strong>, para la fecha y el horario indicados.</p>
+      <p>Según lo conversado, te confirmo la reserva del aula <strong>${escapeHtml(item.room)}</strong>, ubicada en el piso <strong>${escapeHtml(floorNumber)}</strong>, para el período y el horario indicados.</p>
       <table cellpadding="0" cellspacing="0" style="width:100%;max-width:680px;margin:20px 0;border:3px solid #111;border-collapse:collapse;table-layout:fixed;">
         <tr><th colspan="2" style="padding:8px;color:#fff;background:#8f1537;border:2px solid #111;text-align:center;font-family:Arial,sans-serif;font-size:14px;">RESERVA DE AULA - ${escapeHtml(item.floor.toUpperCase())} / ${escapeHtml(item.room.toUpperCase())}</th></tr>
         <tr><th style="width:44%;padding:7px 8px;color:#fff;background:#8f1537;border:2px solid #111;text-align:center;font-family:Arial,sans-serif;font-size:12px;">DATOS</th><th style="padding:7px 8px;color:#fff;background:#681126;border:2px solid #111;text-align:center;font-family:Arial,sans-serif;font-size:12px;">QUITO</th></tr>
-        <tr><th style="padding:7px 8px;color:#fff;background:#8f1537;border:2px solid #111;text-align:left;font-family:Arial,sans-serif;font-size:12px;">FECHA</th><td style="padding:7px 8px;color:#231f20;background:#d9dde1;border:2px solid #111;text-align:center;font-family:Arial,sans-serif;font-size:12px;font-weight:700;">${escapeHtml(formatEmailDate(item.date))}</td></tr>
+        <tr><th style="padding:7px 8px;color:#fff;background:#8f1537;border:2px solid #111;text-align:left;font-family:Arial,sans-serif;font-size:12px;">PERÍODO</th><td style="padding:7px 8px;color:#231f20;background:#d9dde1;border:2px solid #111;text-align:center;font-family:Arial,sans-serif;font-size:12px;font-weight:700;">${escapeHtml(formatReservationPeriod(item, formatEmailDate))}</td></tr>
         ${row("RESPONSABLE DE LA RESERVA", item.responsible.toUpperCase(), true)}
         ${row("DEPARTAMENTO / MARCA", item.department.toUpperCase())}
         ${row("TEMA O MÓDULO", item.topic.toUpperCase())}
@@ -991,6 +1087,12 @@ function formatEmailDate(dateKey) {
     year: "numeric",
   }).format(date);
   return `${weekday}: ${numericDate}`;
+}
+
+function formatReservationPeriod(item, formatter) {
+  const startDate = item.seriesStart || item.date;
+  const endDate = item.seriesEnd || item.date;
+  return startDate === endDate ? formatter(startDate) : `${formatter(startDate)} AL ${formatter(endDate)}`;
 }
 
 function formatCompactDate(dateKey) {
