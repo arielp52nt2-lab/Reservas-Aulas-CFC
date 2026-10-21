@@ -192,7 +192,27 @@
                 </label>
                 <label class="field">
                   <span>Departamento / marca <strong>*</strong></span>
-                  <input id="department" name="department" type="text" maxlength="100" required />
+                  <select id="department" name="department" required>
+                    <option value="">Selecciona una marca o departamento</option>
+                    <option value="KFC">KFC</option>
+                    <option value="Menestras del Negro">Menestras del Negro</option>
+                    <option value="Gus">Gus</option>
+                    <option value="American Deli">American Deli</option>
+                    <option value="Cajun">Cajun</option>
+                    <option value="Dolce Incontro">Dolce Incontro</option>
+                    <option value="Juan Valdez">Juan Valdez</option>
+                    <option value="Casa Res">Casa Res</option>
+                    <option value="Baskin Robbins">Baskin Robbins</option>
+                    <option value="Tropiburger">Tropiburger</option>
+                    <option value="Il Cappo">Il Cappo</option>
+                    <option value="RRHH">RRHH</option>
+                    <option value="CAR">CAR</option>
+                  </select>
+                  <small class="field-error"></small>
+                </label>
+                <label class="field field-wide is-hidden" id="car-department-field">
+                  <span>Departamento de CAR <strong>*</strong></span>
+                  <input id="car-department" name="car-department" type="text" maxlength="100" placeholder="Escribe el departamento" disabled />
                   <small class="field-error"></small>
                 </label>
                 <label class="field field-wide">
@@ -244,8 +264,8 @@
                 <input id="email-subject" type="text" readonly />
               </label>
               <div id="email-preview" class="email-preview">
-                <p>Buenos días, <strong id="email-name"></strong>:</p>
-                <p>Según lo conversado, te confirmo la reserva del aula <strong id="email-room-text"></strong>, ubicada en el piso <strong id="email-floor-number"></strong>, para el período y el horario indicados.</p>
+                <p><span id="email-greeting">Buenos días</span>, <strong id="email-name"></strong>:</p>
+                <p>Con mucho gusto, te confirmo la reserva del aula <strong id="email-room-text"></strong>, ubicada en el piso <strong id="email-floor-number"></strong>, para el período y el horario indicados.</p>
 
                 <table class="reservation-email-table" aria-label="Detalle de la reserva">
                   <tbody>

@@ -1,5 +1,13 @@
 # Historial de versiones
 
+## 2.2.0 — 21 de octubre de 2026
+
+- Se sustituyó el campo libre de departamento o marca por una lista desplegable con las marcas autorizadas.
+- Al seleccionar CAR, aparece un campo obligatorio para especificar el departamento.
+- La marca y el departamento de CAR se muestran correctamente en calendarios, historial, correo y CSV.
+- El saludo del correo cambia entre “Buenos días”, “Buenas tardes” y “Buenas noches” según la hora local.
+- El texto inicial del correo ahora comienza con “Con mucho gusto”.
+
 ## 2.1.0 — 17 de octubre de 2026
 
 - Se agregó la selección de fecha inicial y fecha final para reservar hasta siete días consecutivos en una sola operación.

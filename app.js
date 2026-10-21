@@ -1,11 +1,26 @@
 "use strict";
 
-const APP_VERSION = "2.1.0";
+const APP_VERSION = "2.2.0";
 const STORAGE_KEY = "cfc-reservas-v1";
 const SHARED_MIGRATION_KEY = "cfc-reservas-shared-migration-v1";
 const API_ENDPOINT = "/api/reservations";
 const SYNC_INTERVAL_MS = 4000;
 const MAX_RESERVATION_DAYS = 7;
+const BRAND_OPTIONS = Object.freeze([
+  "KFC",
+  "Menestras del Negro",
+  "Gus",
+  "American Deli",
+  "Cajun",
+  "Dolce Incontro",
+  "Juan Valdez",
+  "Casa Res",
+  "Baskin Robbins",
+  "Tropiburger",
+  "Il Cappo",
+  "RRHH",
+  "CAR",
+]);
 const ROOM_CATALOG = Object.freeze({
   "Piso 1": [
     { name: "Atenea", type: "Centro de cómputo", capacity: 24 },
@@ -53,6 +68,8 @@ const elements = {
   totalHours: document.querySelector("#total-hours"),
   responsible: document.querySelector("#responsible"),
   department: document.querySelector("#department"),
+  carDepartmentField: document.querySelector("#car-department-field"),
+  carDepartment: document.querySelector("#car-department"),
   topic: document.querySelector("#topic"),
   attendees: document.querySelector("#attendees"),
   capacityHelp: document.querySelector("#capacity-help"),
@@ -83,6 +100,7 @@ const elements = {
   emailSubject: document.querySelector("#email-subject"),
   emailBody: document.querySelector("#email-body"),
   emailPreview: document.querySelector("#email-preview"),
+  emailGreeting: document.querySelector("#email-greeting"),
   emailName: document.querySelector("#email-name"),
   emailRoomText: document.querySelector("#email-room-text"),
   emailFloorNumber: document.querySelector("#email-floor-number"),
@@ -150,6 +168,7 @@ function bindEvents() {
   });
   elements.startTime.addEventListener("input", updateTimeSummary);
   elements.endTime.addEventListener("input", updateTimeSummary);
+  elements.department.addEventListener("change", updateDepartmentField);
   elements.form.addEventListener("submit", handleSubmit);
   elements.cancelEdit.addEventListener("click", resetForm);
 
@@ -315,6 +334,7 @@ function setDefaultFormValues() {
 
 function resetForm() {
   elements.form.reset();
+  elements.department.querySelectorAll("[data-legacy-option]").forEach((option) => option.remove());
   elements.id.value = "";
   elements.formTitle.textContent = "Nueva reserva";
   elements.saveButton.textContent = "Guardar reserva";
@@ -325,10 +345,42 @@ function resetForm() {
   elements.roomDetails.textContent = "";
   elements.capacityHelp.textContent = "Selecciona un aula para consultar su aforo.";
   elements.attendees.removeAttribute("max");
+  updateDepartmentField();
   clearFieldErrors();
   elements.availability.textContent = "";
   elements.availability.className = "availability-message";
   setDefaultFormValues();
+}
+
+function updateDepartmentField() {
+  const isCar = elements.department.value === "CAR";
+  elements.carDepartmentField.classList.toggle("is-hidden", !isCar);
+  elements.carDepartment.disabled = !isCar;
+  elements.carDepartment.required = isCar;
+  if (!isCar) elements.carDepartment.value = "";
+  if (!isCar) {
+    elements.carDepartmentField.classList.remove("has-error");
+    const error = elements.carDepartmentField.querySelector(".field-error");
+    if (error) error.textContent = "";
+  }
+}
+
+function setDepartmentValue(value) {
+  elements.department.querySelectorAll("[data-legacy-option]").forEach((option) => option.remove());
+  if (value && !BRAND_OPTIONS.includes(value)) {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = `${value} (registro anterior)`;
+    option.dataset.legacyOption = "true";
+    elements.department.append(option);
+  }
+  elements.department.value = value || "";
+}
+
+function formatDepartment(item) {
+  const department = String(item.department || "");
+  const carDepartment = String(item.carDepartment || "").trim();
+  return department === "CAR" && carDepartment ? `CAR — ${carDepartment}` : department;
 }
 
 function updateEndDateLimits() {
@@ -537,6 +589,7 @@ function collectFormData() {
     endTime: elements.endTime.value,
     responsible: elements.responsible.value.trim(),
     department: elements.department.value.trim(),
+    carDepartment: elements.department.value === "CAR" ? elements.carDepartment.value.trim() : "",
     topic: elements.topic.value.trim(),
     attendees: Number(elements.attendees.value),
     facilitator: elements.facilitator.value.trim(),
@@ -566,6 +619,11 @@ function validateReservation(data) {
       valid = false;
     }
   });
+
+  if (data.department === "CAR" && !data.carDepartment) {
+    setFieldError(elements.carDepartment, "Escribe el departamento de CAR.");
+    valid = false;
+  }
 
   const selectedRoom = getRoomDetails(data.floor, data.room);
   if (selectedRoom && data.attendees > selectedRoom.capacity) {
@@ -635,7 +693,9 @@ function editReservation(id) {
   elements.startTime.value = item.startTime;
   elements.endTime.value = item.endTime;
   elements.responsible.value = item.responsible;
-  elements.department.value = item.department;
+  setDepartmentValue(item.department);
+  elements.carDepartment.value = item.carDepartment || "";
+  updateDepartmentField();
   elements.topic.value = item.topic;
   elements.attendees.value = item.attendees;
   elements.facilitator.value = item.facilitator || "";
@@ -714,7 +774,7 @@ function renderCalendar() {
           <strong>${escapeHtml(item.room)}</strong>
           <small>${escapeHtml(item.topic)}</small>
           <small>${escapeHtml(item.responsible)}</small>
-          <small><b>Marca:</b> ${escapeHtml(item.department)}</small>
+          <small><b>Marca / departamento:</b> ${escapeHtml(formatDepartment(item))}</small>
           <small>${escapeHtml(item.floor)} · ${Number(item.attendees)} ${Number(item.attendees) === 1 ? "persona" : "personas"}</small>
         `;
         button.addEventListener("click", () => editReservation(item.id));
@@ -786,7 +846,7 @@ function renderMonthlyCalendar() {
       button.className = "month-reservation";
       button.innerHTML = `
         <strong>${escapeHtml(item.startTime)} · ${escapeHtml(item.room)}</strong>
-        <span><b>Marca:</b> ${escapeHtml(item.department)}</span>
+        <span><b>Marca / departamento:</b> ${escapeHtml(formatDepartment(item))}</span>
         <span>${Number(item.attendees)} ${Number(item.attendees) === 1 ? "persona" : "personas"}</span>
       `;
       button.addEventListener("click", () => editReservation(item.id));
@@ -809,7 +869,7 @@ function renderHistory() {
   const todayKey = formatDateKey(new Date());
   const filtered = state.reservations.filter((item) => {
     const searchable = normalizeText(
-      [item.responsible, item.department, item.topic, item.floor, item.room, item.facilitator].join(" "),
+      [item.responsible, formatDepartment(item), item.topic, item.floor, item.room, item.facilitator].join(" "),
     );
     const matchesSearch = !search || searchable.includes(search);
     const matchesFloor = !floor || item.floor === floor;
@@ -827,7 +887,7 @@ function renderHistory() {
       <td><strong>${escapeHtml(formatCompactDate(item.date))}</strong></td>
       <td>${escapeHtml(item.startTime)} – ${escapeHtml(item.endTime)}<small>${escapeHtml(formatHours(calculateHours(item.startTime, item.endTime)))}</small></td>
       <td><strong>${escapeHtml(item.room)}</strong><small>${escapeHtml(item.floor)}${roomDetails ? ` · ${escapeHtml(roomDetails.type)}` : ""}</small></td>
-      <td>${escapeHtml(item.responsible)}<small>${escapeHtml(item.department)}</small></td>
+      <td>${escapeHtml(item.responsible)}<small>${escapeHtml(formatDepartment(item))}</small></td>
       <td>${escapeHtml(item.topic)}${item.facilitator ? `<small>Facilitador: ${escapeHtml(item.facilitator)}</small>` : ""}</td>
       <td>${Number(item.attendees)}</td>
       <td>
@@ -868,13 +928,14 @@ function showEmailPanel(id) {
   const floorNumber = item.floor.replace(/[^0-9]/g, "");
   elements.emailSubject.value = subject;
   elements.emailBody.value = body;
+  elements.emailGreeting.textContent = getEmailGreeting();
   elements.emailName.textContent = item.responsible;
   elements.emailRoomText.textContent = item.room;
   elements.emailFloorNumber.textContent = floorNumber;
   elements.emailTableTitle.textContent = `RESERVA DE AULA - ${item.floor.toUpperCase()} / ${item.room.toUpperCase()}`;
   elements.emailTableDate.textContent = formatReservationPeriod(item, formatEmailDate);
   elements.emailTableResponsible.textContent = item.responsible.toUpperCase();
-  elements.emailTableDepartment.textContent = item.department.toUpperCase();
+  elements.emailTableDepartment.textContent = formatDepartment(item).toUpperCase();
   elements.emailTableTopic.textContent = item.topic.toUpperCase();
   elements.emailTableAttendees.textContent = String(item.attendees);
   elements.emailTableSchedule.textContent = `${item.startTime} - ${item.endTime}`;
@@ -892,16 +953,17 @@ function hideEmailPanel() {
 
 function buildEmailBody(item) {
   const floorNumber = item.floor.replace(/[^0-9]/g, "");
+  const greeting = getEmailGreeting();
   const lines = [
-    `Buenos días, ${item.responsible}:`,
+    `${greeting}, ${item.responsible}:`,
     "",
-    `Según lo conversado, te confirmo la reserva del aula ${item.room}, ubicada en el piso ${floorNumber}, para el período y el horario indicados.`,
+    `Con mucho gusto, te confirmo la reserva del aula ${item.room}, ubicada en el piso ${floorNumber}, para el período y el horario indicados.`,
     "",
     `RESERVA DE AULA - ${item.floor.toUpperCase()} / ${item.room.toUpperCase()}`,
     "DATOS | QUITO",
     `PERÍODO | ${formatReservationPeriod(item, formatEmailDate)}`,
     `RESPONSABLE DE LA RESERVA | ${item.responsible.toUpperCase()}`,
-    `DEPARTAMENTO / MARCA | ${item.department.toUpperCase()}`,
+    `DEPARTAMENTO / MARCA | ${formatDepartment(item).toUpperCase()}`,
     `TEMA O MÓDULO | ${item.topic.toUpperCase()}`,
     `N.º DE ASISTENTES | ${item.attendees}`,
     `HORARIO | ${item.startTime} - ${item.endTime}`,
@@ -924,6 +986,7 @@ function buildEmailBody(item) {
 function buildEmailHtml(item) {
   const floorNumber = item.floor.replace(/[^0-9]/g, "");
   const hours = formatHours(calculateHours(item.startTime, item.endTime));
+  const greeting = getEmailGreeting();
   const row = (label, value, highlighted = false) => `
     <tr>
       <th style="width:44%;padding:7px 8px;color:#fff;background:#8f1537;border:2px solid #111;text-align:left;font-family:Arial,sans-serif;font-size:12px;">${label}</th>
@@ -931,14 +994,14 @@ function buildEmailHtml(item) {
     </tr>`;
   return `
     <div style="color:#231f20;font-family:Arial,sans-serif;font-size:14px;line-height:1.5;">
-      <p>Buenos días, <strong>${escapeHtml(item.responsible)}</strong>:</p>
-      <p>Según lo conversado, te confirmo la reserva del aula <strong>${escapeHtml(item.room)}</strong>, ubicada en el piso <strong>${escapeHtml(floorNumber)}</strong>, para el período y el horario indicados.</p>
+      <p>${escapeHtml(greeting)}, <strong>${escapeHtml(item.responsible)}</strong>:</p>
+      <p>Con mucho gusto, te confirmo la reserva del aula <strong>${escapeHtml(item.room)}</strong>, ubicada en el piso <strong>${escapeHtml(floorNumber)}</strong>, para el período y el horario indicados.</p>
       <table cellpadding="0" cellspacing="0" style="width:100%;max-width:680px;margin:20px 0;border:3px solid #111;border-collapse:collapse;table-layout:fixed;">
         <tr><th colspan="2" style="padding:8px;color:#fff;background:#8f1537;border:2px solid #111;text-align:center;font-family:Arial,sans-serif;font-size:14px;">RESERVA DE AULA - ${escapeHtml(item.floor.toUpperCase())} / ${escapeHtml(item.room.toUpperCase())}</th></tr>
         <tr><th style="width:44%;padding:7px 8px;color:#fff;background:#8f1537;border:2px solid #111;text-align:center;font-family:Arial,sans-serif;font-size:12px;">DATOS</th><th style="padding:7px 8px;color:#fff;background:#681126;border:2px solid #111;text-align:center;font-family:Arial,sans-serif;font-size:12px;">QUITO</th></tr>
         <tr><th style="padding:7px 8px;color:#fff;background:#8f1537;border:2px solid #111;text-align:left;font-family:Arial,sans-serif;font-size:12px;">PERÍODO</th><td style="padding:7px 8px;color:#231f20;background:#d9dde1;border:2px solid #111;text-align:center;font-family:Arial,sans-serif;font-size:12px;font-weight:700;">${escapeHtml(formatReservationPeriod(item, formatEmailDate))}</td></tr>
         ${row("RESPONSABLE DE LA RESERVA", item.responsible.toUpperCase(), true)}
-        ${row("DEPARTAMENTO / MARCA", item.department.toUpperCase())}
+        ${row("DEPARTAMENTO / MARCA", formatDepartment(item).toUpperCase())}
         ${row("TEMA O MÓDULO", item.topic.toUpperCase())}
         ${row("N.º DE ASISTENTES", String(item.attendees))}
         ${row("HORARIO", `${item.startTime} - ${item.endTime}`)}
@@ -1018,7 +1081,7 @@ function exportCsv() {
     item.endTime,
     calculateHours(item.startTime, item.endTime),
     item.responsible,
-    item.department,
+    formatDepartment(item),
     item.topic,
     item.attendees,
     item.facilitator,
@@ -1093,6 +1156,13 @@ function formatReservationPeriod(item, formatter) {
   const startDate = item.seriesStart || item.date;
   const endDate = item.seriesEnd || item.date;
   return startDate === endDate ? formatter(startDate) : `${formatter(startDate)} AL ${formatter(endDate)}`;
+}
+
+function getEmailGreeting(date = new Date()) {
+  const hour = date.getHours();
+  if (hour < 12) return "Buenos días";
+  if (hour < 19) return "Buenas tardes";
+  return "Buenas noches";
 }
 
 function formatCompactDate(dateKey) {
