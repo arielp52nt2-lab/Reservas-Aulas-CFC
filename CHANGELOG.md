@@ -1,5 +1,9 @@
 # Historial de versiones
 
+## 2.2.1 — 22 de octubre de 2026
+
+- Se ajustó el cierre del correo para decir “siempre será un gusto servirles”.
+
 ## 2.2.0 — 21 de octubre de 2026
 
 - Se sustituyó el campo libre de departamento o marca por una lista desplegable con las marcas autorizadas.

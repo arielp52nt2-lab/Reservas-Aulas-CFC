@@ -1,6 +1,6 @@
 "use strict";
 
-const APP_VERSION = "2.2.0";
+const APP_VERSION = "2.2.1";
 const STORAGE_KEY = "cfc-reservas-v1";
 const SHARED_MIGRATION_KEY = "cfc-reservas-shared-migration-v1";
 const API_ENDPOINT = "/api/reservations";
@@ -976,7 +976,7 @@ function buildEmailBody(item) {
     "",
     "Te invitamos a ayudarnos a cuidar estos espacios, que son para el uso de todos.",
     "",
-    "Desde el Departamento de Capacitación, siempre será un gusto servirte.",
+    "Desde el Departamento de Capacitación, siempre será un gusto servirles.",
     "",
     "Saludos,",
   ];
@@ -1011,7 +1011,7 @@ function buildEmailHtml(item) {
       <p>Por favor, si existiera una cancelación, deberás realizarla con al menos 24 horas de anticipación.</p>
       <p><strong>Adjunto te comparto las políticas de uso de las aulas y equipos del CFC.</strong></p>
       <p>Te invitamos a ayudarnos a cuidar estos espacios, que son para el uso de todos.</p>
-      <p>Desde el Departamento de Capacitación, <strong>siempre será un gusto servirte</strong>.</p>
+      <p>Desde el Departamento de Capacitación, <strong>siempre será un gusto servirles</strong>.</p>
       <p>Saludos,</p>
     </div>`;
 }
