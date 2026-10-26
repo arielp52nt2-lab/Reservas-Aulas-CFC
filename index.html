@@ -25,6 +25,7 @@
         <button class="tab" data-tab="month" type="button">Calendario mensual</button>
         <button class="tab" data-tab="form" type="button">Nueva reserva</button>
         <button class="tab" data-tab="history" type="button">Historial</button>
+        <button class="tab" data-tab="dashboard" type="button">Dashboard</button>
       </nav>
 
       <section id="calendar-view" class="view is-active" aria-labelledby="calendar-title">
@@ -190,26 +191,26 @@
                   <input id="responsible" name="responsible" type="text" maxlength="100" autocomplete="name" required />
                   <small class="field-error"></small>
                 </label>
-                <label class="field">
-                  <span>Departamento / marca <strong>*</strong></span>
-                  <select id="department" name="department" required>
-                    <option value="">Selecciona una marca o departamento</option>
-                    <option value="KFC">KFC</option>
-                    <option value="Menestras del Negro">Menestras del Negro</option>
-                    <option value="Gus">Gus</option>
-                    <option value="American Deli">American Deli</option>
-                    <option value="Cajun">Cajun</option>
-                    <option value="Dolce Incontro">Dolce Incontro</option>
-                    <option value="Juan Valdez">Juan Valdez</option>
-                    <option value="Casa Res">Casa Res</option>
-                    <option value="Baskin Robbins">Baskin Robbins</option>
-                    <option value="Tropiburger">Tropiburger</option>
-                    <option value="Il Cappo">Il Cappo</option>
-                    <option value="RRHH">RRHH</option>
-                    <option value="CAR">CAR</option>
-                  </select>
+                <fieldset class="field field-wide brand-selector-field" id="brand-field">
+                  <legend>Departamento / marca <strong>*</strong></legend>
+                  <p class="field-help">Puedes seleccionar una o varias marcas.</p>
+                  <div class="brand-checklist" id="brand-checklist">
+                    <label><input type="checkbox" name="brands" value="KFC" /> <span>KFC</span></label>
+                    <label><input type="checkbox" name="brands" value="Menestras del Negro" /> <span>Menestras del Negro</span></label>
+                    <label><input type="checkbox" name="brands" value="Gus" /> <span>Gus</span></label>
+                    <label><input type="checkbox" name="brands" value="American Deli" /> <span>American Deli</span></label>
+                    <label><input type="checkbox" name="brands" value="Cajun" /> <span>Cajun</span></label>
+                    <label><input type="checkbox" name="brands" value="Dolce Incontro" /> <span>Dolce Incontro</span></label>
+                    <label><input type="checkbox" name="brands" value="Juan Valdez" /> <span>Juan Valdez</span></label>
+                    <label><input type="checkbox" name="brands" value="Casa Res" /> <span>Casa Res</span></label>
+                    <label><input type="checkbox" name="brands" value="Baskin Robbins &amp; Cinnabon" /> <span>Baskin Robbins &amp; Cinnabon</span></label>
+                    <label><input type="checkbox" name="brands" value="Tropiburger" /> <span>Tropiburger</span></label>
+                    <label><input type="checkbox" name="brands" value="Il Cappo" /> <span>Il Cappo</span></label>
+                    <label><input type="checkbox" name="brands" value="RRHH" /> <span>RRHH</span></label>
+                    <label><input type="checkbox" name="brands" value="CAR" /> <span>CAR</span></label>
+                  </div>
                   <small class="field-error"></small>
-                </label>
+                </fieldset>
                 <label class="field field-wide is-hidden" id="car-department-field">
                   <span>Departamento de CAR <strong>*</strong></span>
                   <input id="car-department" name="car-department" type="text" maxlength="100" placeholder="Escribe el departamento" disabled />
@@ -376,6 +377,50 @@
             <p>Cambia los filtros o crea una nueva reserva.</p>
           </div>
         </div>
+      </section>
+
+      <section id="dashboard-view" class="view" aria-labelledby="dashboard-title">
+        <div class="section-heading dashboard-heading">
+          <div>
+            <p class="eyebrow">Indicadores</p>
+            <h2 id="dashboard-title">Dashboard de uso por marca</h2>
+            <p class="section-copy">Consulta las horas utilizadas y las personas registradas para cada marca.</p>
+          </div>
+          <label class="dashboard-period-field">
+            <span>Período</span>
+            <select id="dashboard-period">
+              <option value="all">Todo el historial</option>
+              <option value="month">Este mes</option>
+              <option value="year">Este año</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="dashboard-summary" aria-label="Balance total">
+          <article class="dashboard-total-card dashboard-total-hours">
+            <span>Horas totales utilizadas</span>
+            <strong id="dashboard-total-hours">0</strong>
+            <small>sin duplicar reservas multimarca</small>
+          </article>
+          <article class="dashboard-total-card dashboard-total-people">
+            <span>Personas registradas</span>
+            <strong id="dashboard-total-people">0</strong>
+            <small>balance general del período</small>
+          </article>
+          <article class="dashboard-total-card dashboard-total-brands">
+            <span>Marcas con actividad</span>
+            <strong id="dashboard-active-brands">0</strong>
+            <small>de 13 marcas y departamentos</small>
+          </article>
+        </div>
+
+        <div class="dashboard-note card">
+          <strong>Reservas multimarca:</strong>
+          <span>las horas y las personas se acreditan completas a cada marca seleccionada; el balance general cuenta cada reserva una sola vez.</span>
+          <p id="dashboard-unclassified" class="dashboard-unclassified is-hidden"></p>
+        </div>
+
+        <div id="brand-dashboard-grid" class="brand-dashboard-grid" aria-live="polite"></div>
       </section>
     </main>
 

@@ -524,6 +524,70 @@ select:disabled {
   line-height: 1.35;
 }
 
+.brand-selector-field {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.brand-selector-field legend {
+  margin-bottom: 4px;
+}
+
+.brand-selector-field > .field-help {
+  margin-bottom: 5px;
+}
+
+.brand-checklist {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.brand-checklist label {
+  min-height: 44px;
+  padding: 9px 11px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--ink);
+  background: #fff;
+  border: 1px solid #cbd7e1;
+  border-radius: 9px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 700;
+  transition: border-color 120ms ease, background 120ms ease, transform 120ms ease;
+}
+
+.brand-checklist label:hover {
+  transform: translateY(-1px);
+  border-color: var(--brand-red);
+}
+
+.brand-checklist label:has(input:checked) {
+  color: var(--brand-red-dark);
+  background: var(--blue-soft);
+  border-color: var(--brand-red);
+  box-shadow: inset 0 0 0 1px rgba(200, 16, 46, 0.12);
+}
+
+.brand-checklist input {
+  width: 18px;
+  min-height: 18px;
+  margin: 0;
+  accent-color: var(--brand-red);
+  flex: 0 0 auto;
+}
+
+.brand-selector-field.has-error .brand-checklist {
+  padding: 7px;
+  background: var(--danger-soft);
+  border: 1px solid var(--danger);
+  border-radius: 11px;
+}
+
 .field.has-error input,
 .field.has-error select,
 .field.has-error textarea {
@@ -837,6 +901,218 @@ select:disabled {
   gap: 14px;
 }
 
+.dashboard-period-field {
+  min-width: 210px;
+  display: grid;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.dashboard-summary {
+  margin-bottom: 16px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.dashboard-total-card {
+  position: relative;
+  min-height: 148px;
+  padding: 22px;
+  overflow: hidden;
+  color: #fff;
+  background: linear-gradient(135deg, #2f292b, var(--brand-black));
+  border-radius: 16px;
+  box-shadow: 0 15px 34px rgba(35, 31, 32, 0.16);
+}
+
+.dashboard-total-card::after {
+  content: "";
+  position: absolute;
+  right: -35px;
+  bottom: -55px;
+  width: 150px;
+  height: 150px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 50%;
+}
+
+.dashboard-total-hours {
+  background: linear-gradient(135deg, #8d0e2a, var(--brand-red));
+}
+
+.dashboard-total-people {
+  background: linear-gradient(135deg, #353033, #5a5054);
+}
+
+.dashboard-total-brands {
+  background: linear-gradient(135deg, #681126, #9f0b23);
+}
+
+.dashboard-total-card span,
+.dashboard-total-card small,
+.dashboard-total-card strong {
+  position: relative;
+  z-index: 1;
+  display: block;
+}
+
+.dashboard-total-card span {
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.dashboard-total-card strong {
+  margin: 10px 0 4px;
+  font-size: clamp(2.2rem, 5vw, 3.5rem);
+  line-height: 1;
+}
+
+.dashboard-total-card small {
+  color: rgba(255, 255, 255, 0.76);
+}
+
+.dashboard-note {
+  margin-bottom: 18px;
+  padding: 14px 17px;
+  color: var(--muted);
+  border-left: 5px solid var(--brand-red);
+  line-height: 1.45;
+}
+
+.dashboard-note strong {
+  color: var(--brand-black);
+}
+
+.dashboard-unclassified {
+  margin: 9px 0 0;
+  padding-top: 9px;
+  color: #8a4b09;
+  border-top: 1px solid #ead9c5;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.brand-dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.brand-dashboard-card {
+  min-width: 0;
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  opacity: 0.78;
+  transition: transform 160ms ease, opacity 160ms ease, box-shadow 160ms ease;
+}
+
+.brand-dashboard-card.has-activity,
+.brand-dashboard-card:hover {
+  opacity: 1;
+}
+
+.brand-dashboard-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 18px 42px rgba(35, 31, 32, 0.12);
+}
+
+.brand-logo-stage {
+  height: 142px;
+  padding: 18px;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(circle at 50% 35%, rgba(200, 16, 46, 0.08), transparent 65%),
+    linear-gradient(180deg, #fff, #f7f5f6);
+  border-bottom: 1px solid var(--line);
+}
+
+.brand-logo-stage img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 9px 9px rgba(35, 31, 32, 0.2));
+}
+
+.brand-dashboard-content {
+  padding: 17px;
+}
+
+.brand-dashboard-title {
+  min-height: 48px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.brand-dashboard-title h3 {
+  font-size: 1rem;
+  line-height: 1.25;
+}
+
+.brand-dashboard-title > strong {
+  color: var(--brand-red);
+  font-size: 1.15rem;
+  white-space: nowrap;
+}
+
+.brand-progress {
+  height: 8px;
+  margin: 8px 0 16px;
+  overflow: hidden;
+  background: #ece8ea;
+  border-radius: 999px;
+}
+
+.brand-progress span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--brand-red-dark), var(--brand-red));
+  border-radius: inherit;
+}
+
+.brand-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.brand-metrics div {
+  min-width: 0;
+  padding: 9px 7px;
+  background: #f7f5f6;
+  border-radius: 9px;
+  text-align: center;
+}
+
+.brand-metrics span,
+.brand-metrics strong {
+  display: block;
+}
+
+.brand-metrics span {
+  margin-bottom: 3px;
+  color: var(--muted);
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.brand-metrics strong {
+  color: var(--brand-black);
+  font-size: 1.05rem;
+}
+
 .summary-card {
   padding: 18px 20px;
   background: #fff;
@@ -1012,6 +1288,10 @@ tbody tr:hover {
     grid-column: 1 / -1;
     grid-row: 1;
   }
+
+  .brand-dashboard-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 760px) {
@@ -1050,8 +1330,15 @@ tbody tr:hover {
   .three-columns,
   .two-columns,
   .history-summary,
-  .month-summary {
+  .month-summary,
+  .dashboard-summary,
+  .brand-dashboard-grid,
+  .brand-checklist {
     grid-template-columns: 1fr;
+  }
+
+  .dashboard-period-field {
+    width: 100%;
   }
 
   .week-controls,

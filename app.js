@@ -1,26 +1,27 @@
 "use strict";
 
-const APP_VERSION = "2.2.1";
+const APP_VERSION = "2.3.0";
 const STORAGE_KEY = "cfc-reservas-v1";
 const SHARED_MIGRATION_KEY = "cfc-reservas-shared-migration-v1";
 const API_ENDPOINT = "/api/reservations";
 const SYNC_INTERVAL_MS = 4000;
 const MAX_RESERVATION_DAYS = 7;
-const BRAND_OPTIONS = Object.freeze([
-  "KFC",
-  "Menestras del Negro",
-  "Gus",
-  "American Deli",
-  "Cajun",
-  "Dolce Incontro",
-  "Juan Valdez",
-  "Casa Res",
-  "Baskin Robbins",
-  "Tropiburger",
-  "Il Cappo",
-  "RRHH",
-  "CAR",
+const BRAND_CATALOG = Object.freeze([
+  { name: "KFC", logo: "assets/brands/kfc-3d.webp" },
+  { name: "Menestras del Negro", logo: "assets/brands/menestras-del-negro-3d.webp" },
+  { name: "Gus", logo: "assets/brands/gus-3d.webp" },
+  { name: "American Deli", logo: "assets/brands/american-deli-3d.webp" },
+  { name: "Cajun", logo: "assets/brands/cajun-3d.webp" },
+  { name: "Dolce Incontro", logo: "assets/brands/dolce-incontro-3d.webp" },
+  { name: "Juan Valdez", logo: "assets/brands/juan-valdez-3d.webp" },
+  { name: "Casa Res", logo: "assets/brands/casa-res-3d.webp" },
+  { name: "Baskin Robbins & Cinnabon", logo: "assets/brands/baskin-robbins-cinnabon-3d.webp" },
+  { name: "Tropiburger", logo: "assets/brands/tropiburger-3d.webp" },
+  { name: "Il Cappo", logo: "assets/brands/il-cappo-3d.webp" },
+  { name: "RRHH", logo: "assets/brands/rrhh-3d-v2.webp" },
+  { name: "CAR", logo: "assets/brands/car-3d.webp" },
 ]);
+const BRAND_OPTIONS = Object.freeze(BRAND_CATALOG.map((brand) => brand.name));
 const ROOM_CATALOG = Object.freeze({
   "Piso 1": [
     { name: "Atenea", type: "Centro de cómputo", capacity: 24 },
@@ -67,7 +68,8 @@ const elements = {
   endTime: document.querySelector("#end-time"),
   totalHours: document.querySelector("#total-hours"),
   responsible: document.querySelector("#responsible"),
-  department: document.querySelector("#department"),
+  brandField: document.querySelector("#brand-field"),
+  brandInputs: [...document.querySelectorAll('input[name="brands"]')],
   carDepartmentField: document.querySelector("#car-department-field"),
   carDepartment: document.querySelector("#car-department"),
   topic: document.querySelector("#topic"),
@@ -114,6 +116,12 @@ const elements = {
   emailTableHours: document.querySelector("#email-table-hours"),
   emailTableRequester: document.querySelector("#email-table-requester"),
   openEmail: document.querySelector("#open-email"),
+  dashboardPeriod: document.querySelector("#dashboard-period"),
+  dashboardTotalHours: document.querySelector("#dashboard-total-hours"),
+  dashboardTotalPeople: document.querySelector("#dashboard-total-people"),
+  dashboardActiveBrands: document.querySelector("#dashboard-active-brands"),
+  dashboardUnclassified: document.querySelector("#dashboard-unclassified"),
+  brandDashboardGrid: document.querySelector("#brand-dashboard-grid"),
   toast: document.querySelector("#toast"),
 };
 
@@ -168,7 +176,7 @@ function bindEvents() {
   });
   elements.startTime.addEventListener("input", updateTimeSummary);
   elements.endTime.addEventListener("input", updateTimeSummary);
-  elements.department.addEventListener("change", updateDepartmentField);
+  elements.brandInputs.forEach((input) => input.addEventListener("change", updateDepartmentField));
   elements.form.addEventListener("submit", handleSubmit);
   elements.cancelEdit.addEventListener("click", resetForm);
 
@@ -181,6 +189,7 @@ function bindEvents() {
   elements.historySearch.addEventListener("input", renderHistory);
   elements.historyFloor.addEventListener("change", renderHistory);
   elements.historyPeriod.addEventListener("change", renderHistory);
+  elements.dashboardPeriod.addEventListener("change", renderDashboard);
   document.querySelector("#export-csv").addEventListener("click", exportCsv);
   document.querySelector("#copy-email").addEventListener("click", copyEmailMessage);
   elements.openEmail.addEventListener("click", openFormattedEmail);
@@ -206,7 +215,8 @@ function loadReservations() {
 function migrateStoredReservation(item) {
   if (!item || typeof item !== "object") return item;
   const room = LEGACY_ROOM_NAMES[item.room] || item.room;
-  return { ...item, room, appVersion: APP_VERSION };
+  const brands = getReservationBrands(item);
+  return { ...item, room, brands, appVersion: APP_VERSION };
 }
 
 function isValidStoredReservation(item) {
@@ -312,6 +322,7 @@ function showView(name) {
   if (name === "calendar") renderCalendar();
   if (name === "month") renderMonthlyCalendar();
   if (name === "history") renderHistory();
+  if (name === "dashboard") renderDashboard();
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
@@ -334,7 +345,6 @@ function setDefaultFormValues() {
 
 function resetForm() {
   elements.form.reset();
-  elements.department.querySelectorAll("[data-legacy-option]").forEach((option) => option.remove());
   elements.id.value = "";
   elements.formTitle.textContent = "Nueva reserva";
   elements.saveButton.textContent = "Guardar reserva";
@@ -353,7 +363,7 @@ function resetForm() {
 }
 
 function updateDepartmentField() {
-  const isCar = elements.department.value === "CAR";
+  const isCar = getSelectedBrands().includes("CAR");
   elements.carDepartmentField.classList.toggle("is-hidden", !isCar);
   elements.carDepartment.disabled = !isCar;
   elements.carDepartment.required = isCar;
@@ -365,22 +375,39 @@ function updateDepartmentField() {
   }
 }
 
-function setDepartmentValue(value) {
-  elements.department.querySelectorAll("[data-legacy-option]").forEach((option) => option.remove());
-  if (value && !BRAND_OPTIONS.includes(value)) {
-    const option = document.createElement("option");
-    option.value = value;
-    option.textContent = `${value} (registro anterior)`;
-    option.dataset.legacyOption = "true";
-    elements.department.append(option);
-  }
-  elements.department.value = value || "";
+function getSelectedBrands() {
+  return elements.brandInputs.filter((input) => input.checked).map((input) => input.value);
+}
+
+function canonicalizeBrand(value) {
+  const cleanValue = String(value || "").trim();
+  if (!cleanValue) return "";
+  if (normalizeText(cleanValue) === "baskin robbins") return "Baskin Robbins & Cinnabon";
+  return BRAND_OPTIONS.find((brand) => normalizeText(brand) === normalizeText(cleanValue)) || cleanValue;
+}
+
+function getReservationBrands(item) {
+  const storedBrands = Array.isArray(item?.brands) ? item.brands : [];
+  const source = storedBrands.length
+    ? storedBrands
+    : String(item?.department || "")
+        .split(",")
+        .map((brand) => brand.trim());
+  return [...new Set(source.map(canonicalizeBrand).filter(Boolean))];
+}
+
+function setBrandValues(item) {
+  const brands = getReservationBrands(item);
+  elements.brandInputs.forEach((input) => {
+    input.checked = brands.includes(input.value);
+  });
 }
 
 function formatDepartment(item) {
-  const department = String(item.department || "");
   const carDepartment = String(item.carDepartment || "").trim();
-  return department === "CAR" && carDepartment ? `CAR — ${carDepartment}` : department;
+  return getReservationBrands(item)
+    .map((brand) => (brand === "CAR" && carDepartment ? `CAR — ${carDepartment}` : brand))
+    .join(" · ");
 }
 
 function updateEndDateLimits() {
@@ -579,6 +606,7 @@ async function handleSubmit(event) {
 }
 
 function collectFormData() {
+  const brands = getSelectedBrands();
   return {
     id: elements.id.value,
     date: elements.date.value,
@@ -588,8 +616,9 @@ function collectFormData() {
     startTime: elements.startTime.value,
     endTime: elements.endTime.value,
     responsible: elements.responsible.value.trim(),
-    department: elements.department.value.trim(),
-    carDepartment: elements.department.value === "CAR" ? elements.carDepartment.value.trim() : "",
+    department: brands.join(", "),
+    brands,
+    carDepartment: brands.includes("CAR") ? elements.carDepartment.value.trim() : "",
     topic: elements.topic.value.trim(),
     attendees: Number(elements.attendees.value),
     facilitator: elements.facilitator.value.trim(),
@@ -608,7 +637,7 @@ function validateReservation(data) {
     [elements.startTime, data.startTime, "Indica la hora de inicio."],
     [elements.endTime, data.endTime, "Indica la hora de fin."],
     [elements.responsible, data.responsible, "Indica el responsable."],
-    [elements.department, data.department, "Indica el departamento o marca."],
+    [elements.brandField, data.brands.length, "Selecciona al menos una marca o departamento."],
     [elements.topic, data.topic, "Indica el tema o módulo."],
     [elements.attendees, data.attendees > 0, "Ingresa al menos un asistente."],
   ];
@@ -620,7 +649,7 @@ function validateReservation(data) {
     }
   });
 
-  if (data.department === "CAR" && !data.carDepartment) {
+  if (data.brands.includes("CAR") && !data.carDepartment) {
     setFieldError(elements.carDepartment, "Escribe el departamento de CAR.");
     valid = false;
   }
@@ -693,7 +722,7 @@ function editReservation(id) {
   elements.startTime.value = item.startTime;
   elements.endTime.value = item.endTime;
   elements.responsible.value = item.responsible;
-  setDepartmentValue(item.department);
+  setBrandValues(item);
   elements.carDepartment.value = item.carDepartment || "";
   updateDepartmentField();
   elements.topic.value = item.topic;
@@ -732,6 +761,7 @@ function renderAll() {
   renderMonthlyCalendar();
   renderHistory();
   renderSummary();
+  renderDashboard();
 }
 
 function renderCalendar() {
@@ -917,6 +947,74 @@ function renderSummary() {
   elements.summaryWeek.textContent = String(
     state.reservations.filter((item) => item.date >= weekStartKey && item.date <= weekEndKey).length,
   );
+}
+
+function renderDashboard() {
+  const now = new Date();
+  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const currentYear = String(now.getFullYear());
+  const period = elements.dashboardPeriod.value;
+  const reservations = state.reservations.filter((item) => {
+    if (period === "month") return item.date.startsWith(currentMonth);
+    if (period === "year") return item.date.startsWith(currentYear);
+    return true;
+  });
+  const totalHours = reservations.reduce(
+    (sum, item) => sum + (calculateHours(item.startTime, item.endTime) || 0),
+    0,
+  );
+  const totalPeople = reservations.reduce((sum, item) => sum + Number(item.attendees || 0), 0);
+  const activeBrands = new Set(
+    reservations.flatMap(getReservationBrands).filter((brand) => BRAND_OPTIONS.includes(brand)),
+  );
+
+  elements.dashboardTotalHours.textContent = formatDashboardNumber(totalHours);
+  elements.dashboardTotalPeople.textContent = new Intl.NumberFormat("es-EC").format(totalPeople);
+  elements.dashboardActiveBrands.textContent = String(activeBrands.size);
+  const unclassified = reservations.filter(
+    (item) => !getReservationBrands(item).some((brand) => BRAND_OPTIONS.includes(brand)),
+  );
+  elements.dashboardUnclassified.classList.toggle("is-hidden", unclassified.length === 0);
+  elements.dashboardUnclassified.textContent = unclassified.length
+    ? `${unclassified.length} ${unclassified.length === 1 ? "reserva anterior está registrada" : "reservas anteriores están registradas"} como “Multimarca” o sin una marca reconocida. Se incluyen en el balance general; edítalas para asignarlas al detalle por marca.`
+    : "";
+  elements.brandDashboardGrid.innerHTML = "";
+
+  BRAND_CATALOG.forEach((brand) => {
+    const brandReservations = reservations.filter((item) => getReservationBrands(item).includes(brand.name));
+    const hours = brandReservations.reduce(
+      (sum, item) => sum + (calculateHours(item.startTime, item.endTime) || 0),
+      0,
+    );
+    const people = brandReservations.reduce((sum, item) => sum + Number(item.attendees || 0), 0);
+    const percentage = totalHours ? (hours / totalHours) * 100 : 0;
+    const card = document.createElement("article");
+    card.className = `brand-dashboard-card${brandReservations.length ? " has-activity" : ""}`;
+    card.innerHTML = `
+      <div class="brand-logo-stage">
+        <img src="${escapeHtml(brand.logo)}" alt="Logo de ${escapeHtml(brand.name)}" loading="lazy" />
+      </div>
+      <div class="brand-dashboard-content">
+        <div class="brand-dashboard-title">
+          <h3>${escapeHtml(brand.name)}</h3>
+          <strong>${escapeHtml(formatDashboardNumber(percentage))}%</strong>
+        </div>
+        <div class="brand-progress" aria-label="${escapeHtml(formatDashboardNumber(percentage))}% de las horas totales">
+          <span style="width:${Math.min(percentage, 100).toFixed(2)}%"></span>
+        </div>
+        <div class="brand-metrics">
+          <div><span>Horas</span><strong>${escapeHtml(formatDashboardNumber(hours))}</strong></div>
+          <div><span>Personas</span><strong>${new Intl.NumberFormat("es-EC").format(people)}</strong></div>
+          <div><span>Reservas</span><strong>${brandReservations.length}</strong></div>
+        </div>
+      </div>
+    `;
+    elements.brandDashboardGrid.append(card);
+  });
+}
+
+function formatDashboardNumber(value) {
+  return new Intl.NumberFormat("es-EC", { maximumFractionDigits: 1 }).format(Math.round(value * 10) / 10);
 }
 
 function showEmailPanel(id) {

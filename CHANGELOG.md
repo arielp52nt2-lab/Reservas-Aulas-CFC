@@ -1,5 +1,14 @@
 # Historial de versiones
 
+## 2.3.0 — 26 de octubre de 2026
+
+- Se agregó una pestaña Dashboard con balance total de horas, personas y marcas activas.
+- Se incorporaron indicadores por marca con porcentaje de uso, horas, personas y reservas.
+- Las reservas ahora permiten seleccionar una o varias marcas y acreditan la información completa a cada una.
+- El balance general evita duplicar horas y personas en reservas multimarca.
+- Baskin Robbins se actualizó a “Baskin Robbins & Cinnabon”.
+- Se añadieron logos transparentes con relieve 3D para todas las marcas, RRHH y CAR.
+
 ## 2.2.1 — 22 de octubre de 2026
 
 - Se ajustó el cierre del correo para decir “siempre será un gusto servirles”.
