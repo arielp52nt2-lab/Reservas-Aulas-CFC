@@ -1,6 +1,6 @@
 "use strict";
 
-const APP_VERSION = "2.3.0";
+const APP_VERSION = "2.3.1";
 const STORAGE_KEY = "cfc-reservas-v1";
 const SHARED_MIGRATION_KEY = "cfc-reservas-shared-migration-v1";
 const API_ENDPOINT = "/api/reservations";

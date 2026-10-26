@@ -91,3 +91,8 @@
 - Mensaje para correo listo para copiar o abrir en el cliente de correo.
 - Descarga del historial en formato CSV.
 - Persistencia local en el navegador.
+
+## v2.3.1 - 26 de octubre de 2026
+
+- Los logotipos del Dashboard permanecen nítidos aunque la marca todavía no tenga actividad.
+- Todos los logotipos se ajustan dentro de su tarjeta sin invadir el nombre, el porcentaje ni las métricas.
