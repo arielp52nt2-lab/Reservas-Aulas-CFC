@@ -11,7 +11,7 @@ Aplicación web local para registrar y consultar reservas de aulas por fecha.
 
 En la versión publicada en Netlify, las reservas se almacenan de forma compartida mediante Netlify Blobs. Las altas, ediciones y eliminaciones quedan disponibles para todos los dispositivos y la aplicación consulta cambios automáticamente cada cuatro segundos. La primera apertura también migra las reservas locales existentes al almacenamiento compartido.
 
-Si se abre directamente el archivo `index.html` desde una computadora, la aplicación continúa utilizando el almacenamiento local de ese navegador como modo de respaldo. Para compartir una copia del historial, usa **Descargar CSV**.
+Si se abre directamente el archivo `index.html` desde una computadora, la aplicación continúa utilizando el almacenamiento local de ese navegador como modo de respaldo. Para compartir una copia completa del historial, usa **Descargar Excel**.
 
 ## Publicación en Netlify
 

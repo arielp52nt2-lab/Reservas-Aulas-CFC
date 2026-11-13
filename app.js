@@ -1,6 +1,6 @@
 "use strict";
 
-const APP_VERSION = "2.3.1";
+const APP_VERSION = "2.4.0";
 const STORAGE_KEY = "cfc-reservas-v1";
 const SHARED_MIGRATION_KEY = "cfc-reservas-shared-migration-v1";
 const API_ENDPOINT = "/api/reservations";
@@ -190,7 +190,7 @@ function bindEvents() {
   elements.historyFloor.addEventListener("change", renderHistory);
   elements.historyPeriod.addEventListener("change", renderHistory);
   elements.dashboardPeriod.addEventListener("change", renderDashboard);
-  document.querySelector("#export-csv").addEventListener("click", exportCsv);
+  document.querySelector("#export-excel").addEventListener("click", exportExcel);
   document.querySelector("#copy-email").addEventListener("click", copyEmailMessage);
   elements.openEmail.addEventListener("click", openFormattedEmail);
   window.addEventListener("storage", synchronizeStoredReservations);
@@ -1152,49 +1152,160 @@ async function openFormattedEmail() {
   window.location.href = `mailto:?subject=${subject}`;
 }
 
-function exportCsv() {
+async function exportExcel() {
   if (!state.reservations.length) {
     showToast("No hay reservas para descargar.");
     return;
   }
-  const headers = [
-    "Fecha",
-    "Piso",
-    "Aula",
-    "Hora inicio",
-    "Hora fin",
-    "Total horas",
-    "Responsable",
-    "Departamento / marca",
-    "Tema o módulo",
-    "Asistentes",
-    "Facilitador",
-    "Observaciones",
-  ];
-  const rows = state.reservations.map((item) => [
-    item.date,
-    item.floor,
-    item.room,
-    item.startTime,
-    item.endTime,
-    calculateHours(item.startTime, item.endTime),
-    item.responsible,
-    formatDepartment(item),
-    item.topic,
-    item.attendees,
-    item.facilitator,
-    item.notes,
-  ]);
-  const csv = [headers, ...rows]
-    .map((row) => row.map((cell) => `"${String(cell ?? "").replaceAll('"', '""')}"`).join(","))
-    .join("\r\n");
-  const blob = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" });
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.download = `reservas-cfc-${formatDateKey(new Date())}.csv`;
-  link.click();
-  URL.revokeObjectURL(link.href);
-  showToast("Archivo CSV descargado.");
+  if (!window.ExcelJS) {
+    showToast("No se pudo preparar el archivo de Excel. Actualiza la página e inténtalo nuevamente.");
+    return;
+  }
+
+  const button = document.querySelector("#export-excel");
+  const originalLabel = button.textContent;
+  button.disabled = true;
+  button.textContent = "Preparando Excel…";
+
+  try {
+    const workbook = new window.ExcelJS.Workbook();
+    workbook.creator = "Centro de Formación Continua";
+    workbook.company = "Grupo KFC";
+    workbook.title = "Historial de reservas de aulas CFC";
+    workbook.subject = "Listado completo de reservas";
+    workbook.created = new Date();
+
+    const worksheet = workbook.addWorksheet("Reservas", {
+      views: [{ state: "frozen", ySplit: 4 }],
+      pageSetup: { orientation: "landscape", fitToPage: true, fitToWidth: 1, fitToHeight: 0 },
+    });
+    const headers = [
+      "Código",
+      "Fecha",
+      "Día",
+      "Piso",
+      "Aula",
+      "Tipo de aula",
+      "Aforo máximo",
+      "Hora de inicio",
+      "Hora de fin",
+      "Total de horas",
+      "Responsable",
+      "Marca(s) / departamento",
+      "Departamento CAR",
+      "Tema o módulo",
+      "N.° de asistentes",
+      "Facilitador",
+      "Observaciones",
+      "Estado",
+    ];
+    const columnWidths = [28, 13, 13, 11, 24, 24, 14, 15, 13, 15, 25, 30, 24, 30, 17, 24, 38, 14];
+
+    worksheet.mergeCells(1, 1, 1, headers.length);
+    const titleCell = worksheet.getCell("A1");
+    titleCell.value = "HISTORIAL DE RESERVAS DE AULAS CFC";
+    titleCell.font = { name: "Arial", size: 16, bold: true, color: { argb: "FFFFFFFF" } };
+    titleCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF231F20" } };
+    titleCell.alignment = { horizontal: "center", vertical: "middle" };
+    worksheet.getRow(1).height = 28;
+
+    worksheet.mergeCells(2, 1, 2, headers.length);
+    const subtitleCell = worksheet.getCell("A2");
+    subtitleCell.value = `Generado el ${new Intl.DateTimeFormat("es-EC", { dateStyle: "long", timeStyle: "short" }).format(new Date())} · ${state.reservations.length} ${state.reservations.length === 1 ? "reserva" : "reservas"}`;
+    subtitleCell.font = { name: "Arial", size: 10, italic: true, color: { argb: "FF5F5B5D" } };
+    subtitleCell.alignment = { horizontal: "left", vertical: "middle" };
+    worksheet.getRow(2).height = 22;
+    worksheet.getRow(3).height = 8;
+
+    const headerRow = worksheet.getRow(4);
+    headerRow.values = headers;
+    headerRow.height = 32;
+    headerRow.eachCell((cell) => {
+      cell.font = { name: "Arial", size: 10, bold: true, color: { argb: "FFFFFFFF" } };
+      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFC8102E" } };
+      cell.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
+      cell.border = {
+        top: { style: "thin", color: { argb: "FF9E0B24" } },
+        left: { style: "thin", color: { argb: "FFFFFFFF" } },
+        bottom: { style: "thin", color: { argb: "FF9E0B24" } },
+        right: { style: "thin", color: { argb: "FFFFFFFF" } },
+      };
+    });
+
+    const now = new Date();
+    [...state.reservations].sort(compareReservations).forEach((item, index) => {
+      const roomDetails = getRoomDetails(item.floor, item.room);
+      const reservationEnd = new Date(`${item.date}T${item.endTime}:00`);
+      const row = worksheet.addRow([
+        item.id,
+        new Date(`${item.date}T12:00:00`),
+        new Intl.DateTimeFormat("es-EC", { weekday: "long" })
+          .format(new Date(`${item.date}T12:00:00`))
+          .replace(/^./, (letter) => letter.toUpperCase()),
+        item.floor,
+        item.room,
+        roomDetails?.type || "",
+        roomDetails?.capacity || "",
+        item.startTime,
+        item.endTime,
+        calculateHours(item.startTime, item.endTime) || 0,
+        item.responsible || "",
+        formatDepartment(item),
+        item.carDepartment || "",
+        item.topic || "",
+        Number(item.attendees || 0),
+        item.facilitator || "",
+        item.notes || "",
+        reservationEnd < now ? "Finalizada" : "Próxima",
+      ]);
+      row.height = 30;
+      row.eachCell({ includeEmpty: true }, (cell) => {
+        cell.font = { name: "Arial", size: 10, color: { argb: "FF231F20" } };
+        cell.alignment = { vertical: "middle", wrapText: true };
+        cell.fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: index % 2 === 0 ? "FFFFFFFF" : "FFF7F4F5" },
+        };
+        cell.border = {
+          bottom: { style: "hair", color: { argb: "FFD8D2D4" } },
+          right: { style: "hair", color: { argb: "FFE5E0E2" } },
+        };
+      });
+      row.getCell(2).numFmt = "dd/mm/yyyy";
+      row.getCell(7).numFmt = "#,##0";
+      row.getCell(10).numFmt = "0.0";
+      row.getCell(15).numFmt = "#,##0";
+      [2, 3, 4, 7, 8, 9, 10, 15, 18].forEach((column) => {
+        row.getCell(column).alignment = { ...row.getCell(column).alignment, horizontal: "center" };
+      });
+    });
+
+    worksheet.columns.forEach((column, index) => {
+      column.width = columnWidths[index];
+    });
+    worksheet.autoFilter = { from: { row: 4, column: 1 }, to: { row: Math.max(4, worksheet.rowCount), column: headers.length } };
+    worksheet.getColumn(1).hidden = true;
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `reservas-cfc-${formatDateKey(new Date())}.xlsx`;
+    document.body.append(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+    showToast("Archivo de Excel descargado.");
+  } catch (error) {
+    console.error("No se pudo generar el archivo de Excel.", error);
+    showToast("No se pudo generar el archivo de Excel. Inténtalo nuevamente.");
+  } finally {
+    button.disabled = false;
+    button.textContent = originalLabel;
+  }
 }
 
 function showToast(message) {

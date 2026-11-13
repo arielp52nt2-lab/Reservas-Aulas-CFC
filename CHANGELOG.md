@@ -96,3 +96,8 @@
 
 - Los logotipos del Dashboard permanecen nítidos aunque la marca todavía no tenga actividad.
 - Todos los logotipos se ajustan dentro de su tarjeta sin invadir el nombre, el porcentaje ni las métricas.
+
+## v2.4.0 - 13 de noviembre de 2026
+
+- Se reemplazó la descarga CSV por un archivo Excel real con todas las reservas.
+- El archivo incluye filtros, encabezados fijos, columnas ajustadas y datos completos de aula, marcas, responsable, asistentes y estado.
